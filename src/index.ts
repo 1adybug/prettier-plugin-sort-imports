@@ -3,7 +3,7 @@ import { ParserOptions, Plugin } from "prettier"
 import { removeUnusedImportsFromStatements } from "./analyzer"
 import { formatGroups, formatImportStatements } from "./formatter"
 import { parseImports } from "./parser"
-import { groupImports, sortGroups, sortImports } from "./sorter"
+import { groupImports, mergeImports, sortGroups, sortImports } from "./sorter"
 import { PluginConfig } from "./types"
 
 const require = createRequire(import.meta.url)
@@ -63,17 +63,20 @@ function preprocessImports(
         // 排序导入语句
         const sortedImports = sortImports(processedImports, config)
 
+        // 合并来自同一模块的导入
+        const mergedImports = mergeImports(sortedImports)
+
         // 格式化导入语句
         let formattedImports: string
 
         // 如果配置了分组函数，使用分组格式化
         if (config.getGroup) {
-            const groups = groupImports(sortedImports, config)
+            const groups = groupImports(mergedImports, config)
             const sortedGroups = sortGroups(groups, config)
             formattedImports = formatGroups(sortedGroups, config)
         } else {
             // 否则直接格式化
-            formattedImports = formatImportStatements(sortedImports)
+            formattedImports = formatImportStatements(mergedImports)
         }
 
         // 获取导入块的起始和结束位置

@@ -26,6 +26,8 @@ export interface ImportStatement {
     leadingComments?: string[]
     /** 导入语句后方的行尾注释 */
     trailingComments?: string[]
+    /** 被移除的导入语句的行尾注释（合并时使用） */
+    removedTrailingComments?: string[]
     /** 在源代码中的起始位置（包括注释） */
     start?: number
     /** 在源代码中的结束位置 */

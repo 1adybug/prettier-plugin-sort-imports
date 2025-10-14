@@ -290,3 +290,103 @@ export function sortImportContents(
         ...namedImports.sort(config.sortImportContent),
     ]
 }
+
+/** 合并来自同一模块的导入语句 */
+export function mergeImports(imports: ImportStatement[]): ImportStatement[] {
+    // 使用 Map 来存储合并后的导入
+    // key 是 `${path}|||${isExport}` 的形式，确保相同模块和相同类型（import/export）的导入会被合并
+    const mergedMap = new Map<string, ImportStatement>()
+
+    for (const statement of imports) {
+        // 副作用导入不合并
+        if (statement.isSideEffect) {
+            const key = `${statement.path}|||${statement.isExport}|||sideEffect|||${statement.start}`
+            mergedMap.set(key, statement)
+            continue
+        }
+
+        // 如果包含命名空间导入，不合并
+        const hasNamespaceImport = statement.importContents.some(
+            c => c.name === "*",
+        )
+        if (hasNamespaceImport) {
+            const key = `${statement.path}|||${statement.isExport}|||namespace|||${statement.start}`
+            mergedMap.set(key, statement)
+            continue
+        }
+
+        const key = `${statement.path}|||${statement.isExport}`
+        const existing = mergedMap.get(key)
+
+        if (!existing) {
+            mergedMap.set(key, { ...statement })
+        } else {
+            // 合并导入内容
+            const mergedContents = [...existing.importContents]
+
+            for (const content of statement.importContents) {
+                // 检查是否已经存在相同的导入
+                const existingContent = mergedContents.find(
+                    c => c.name === content.name && c.alias === content.alias,
+                )
+
+                if (!existingContent) {
+                    mergedContents.push(content)
+                } else {
+                    // 如果已存在，合并注释
+                    if (content.leadingComments) {
+                        existingContent.leadingComments = [
+                            ...(existingContent.leadingComments ?? []),
+                            ...content.leadingComments,
+                        ]
+                    }
+                    if (content.trailingComments) {
+                        existingContent.trailingComments = [
+                            ...(existingContent.trailingComments ?? []),
+                            ...content.trailingComments,
+                        ]
+                    }
+                }
+            }
+
+            // 合并语句级别的注释
+            // 策略：
+            // 1. 前置注释：合并所有导入的前置注释，按顺序排列
+            // 2. 行尾注释：只保留第一个导入的行尾注释
+            // 3. 被移除导入的行尾注释：存储到 removedTrailingComments，稍后输出为独立的注释行
+            
+            const mergedLeadingComments = [
+                ...(existing.leadingComments ?? []),
+                ...(statement.leadingComments ?? []),
+            ]
+            
+            // 只保留第一个导入的行尾注释
+            const mergedTrailingComments = existing.trailingComments ?? []
+            
+            // 收集被移除导入的行尾注释
+            const removedTrailingComments = [
+                ...(existing.removedTrailingComments ?? []),
+                ...(statement.trailingComments ?? []),
+            ]
+
+            mergedMap.set(key, {
+                ...existing,
+                importContents: mergedContents,
+                leadingComments:
+                    mergedLeadingComments.length > 0
+                        ? mergedLeadingComments
+                        : undefined,
+                trailingComments:
+                    mergedTrailingComments.length > 0
+                        ? mergedTrailingComments
+                        : undefined,
+                removedTrailingComments:
+                    removedTrailingComments.length > 0
+                        ? removedTrailingComments
+                        : undefined,
+            })
+        }
+    }
+
+    return Array.from(mergedMap.values())
+}

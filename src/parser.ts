@@ -84,21 +84,30 @@ function parseImportNode(
     }
 
     // 处理行尾注释
+    // 只保留与节点在同一行的注释作为 trailing comments
     if (node.trailingComments) {
         for (const comment of node.trailingComments) {
             if (!usedComments.has(comment)) {
-                if (comment.type === "CommentLine") {
-                    trailingComments.push(`//${comment.value}`)
-                } else if (comment.type === "CommentBlock") {
-                    trailingComments.push(`/*${comment.value}*/`)
-                }
+                // 检查注释是否与节点在同一行
+                const commentLoc = comment.loc
+                const nodeLoc = node.loc
+                const isSameLine = commentLoc && nodeLoc && commentLoc.start.line === nodeLoc.end.line
+                
+                if (isSameLine) {
+                    if (comment.type === "CommentLine") {
+                        trailingComments.push(`//${comment.value}`)
+                    } else if (comment.type === "CommentBlock") {
+                        trailingComments.push(`/*${comment.value}*/`)
+                    }
 
-                const commentEnd = comment.end ?? 0
-                if (commentEnd > nodeEnd) {
-                    nodeEnd = commentEnd
-                }
+                    const commentEnd = comment.end ?? 0
+                    if (commentEnd > nodeEnd) {
+                        nodeEnd = commentEnd
+                    }
 
-                usedComments.add(comment)
+                    usedComments.add(comment)
+                }
+                // 不在同一行的注释不标记为 used，让下一个节点的 leadingComments 来处理
             }
         }
     }

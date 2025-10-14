@@ -12,6 +12,7 @@ export function formatImportStatement(statement: ImportStatement): string {
         importContents,
         leadingComments,
         trailingComments,
+        removedTrailingComments,
     } = statement
 
     const lines: string[] = []
@@ -102,22 +103,22 @@ export function formatImportStatement(statement: ImportStatement): string {
         }
     }
 
-    // 检查是否所有命名导入都是类型
-    const allNamedImportsAreTypes = importContents
-        .filter(c => c.name !== "default" && c.name !== "*")
-        .every(c => c.type === "type")
-
-    // 检查是否只有命名导入（没有默认导入和命名空间导入）
-    const hasOnlyNamedImports = importContents.every(
+    // 检查导入类型组合
+    const namedImports = importContents.filter(
         c => c.name !== "default" && c.name !== "*",
+    )
+    const allNamedImportsAreTypes = namedImports.every(c => c.type === "type")
+    const hasDefaultOrNamespace = importContents.some(
+        c => c.name === "default" || c.name === "*",
     )
 
     // 添加命名导入部分
     if (hasNamedImportComments && namedPartsWithComments.length > 0) {
         // 多行格式
         const keyword = isExport ? "export" : "import"
+        // 只有在所有命名导入都是类型且没有默认导入/命名空间导入时才使用 type 关键字
         const typeKeyword =
-            allNamedImportsAreTypes && hasOnlyNamedImports ? "type " : ""
+            allNamedImportsAreTypes && !hasDefaultOrNamespace ? "type " : ""
         const defaultPart = parts.length > 0 ? parts.join(", ") + ", " : ""
         const importStart = `${keyword} ${typeKeyword}${defaultPart}{`
         const importEnd = `} from "${path}"`
@@ -128,22 +129,25 @@ export function formatImportStatement(statement: ImportStatement): string {
     } else {
         // 单行格式
         if (namedParts.length > 0) {
-            // 如果所有命名导入都是类型，且没有默认/命名空间导入，使用 import type
-            if (allNamedImportsAreTypes && hasOnlyNamedImports) {
+            // 如果所有命名导入都是类型且没有默认导入/命名空间导入
+            if (allNamedImportsAreTypes && !hasDefaultOrNamespace) {
+                // 使用 import type { A, B } 格式
                 // 移除每个导入项前面的 type 关键字
                 const cleanedParts = namedParts.map(part =>
                     part.replace(/^type /, ""),
                 )
                 parts.push(`{ ${cleanedParts.join(", ")} }`)
             } else {
+                // 其他情况保持每个导入项前面的 type 关键字
                 parts.push(`{ ${namedParts.join(", ")} }`)
             }
         }
 
         // 构建完整的导入语句
         const importClause = parts.join(", ")
+        // 只有在所有命名导入都是类型且没有默认导入/命名空间导入时才使用 type 关键字
         const typeKeyword =
-            allNamedImportsAreTypes && hasOnlyNamedImports ? "type " : ""
+            allNamedImportsAreTypes && !hasDefaultOrNamespace ? "type " : ""
         let importLine = ""
         if (isExport) {
             importLine = `export ${typeKeyword}${importClause} from "${path}"`
@@ -157,6 +161,12 @@ export function formatImportStatement(statement: ImportStatement): string {
         }
 
         lines.push(importLine)
+    }
+
+    // 添加被移除导入的行尾注释（作为独立的注释行）
+    if (removedTrailingComments && removedTrailingComments.length > 0) {
+        lines.push("")  // 添加空行
+        lines.push(...removedTrailingComments)
     }
 
     return lines.join("\n")

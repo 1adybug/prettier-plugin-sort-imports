@@ -41,11 +41,14 @@
         "build": "rslib build",
         "dev": "rslib build --watch",
         "prepublishOnly": "npm run build",
-        "format": "prettier --config prettier.config.mjs --write ."
+        "format": "prettier --config prettier.config.mjs --write .",
+        "test": "bun test",
+        "test:watch": "bun test --watch"
     },
     "devDependencies": {
         "@rslib/core": "^0.15.0",
         "@types/babel__core": "^7.20.5",
+        "@types/bun": "latest",
         "@types/node": "^22.18.6",
         "prettier": "^3.6.2",
         "supports-color": "^10.2.2",
