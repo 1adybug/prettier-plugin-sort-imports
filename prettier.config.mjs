@@ -4,6 +4,7 @@ import { createPlugin } from "./dist/index.js"
 /**
  * @type {import("prettier").Options}
  */
+
 const config = {
     semi: false,
     tabWidth: 4,

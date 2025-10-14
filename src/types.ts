@@ -6,6 +6,10 @@ export interface ImportContent {
     alias?: string
     /** 导入的内容的类型，只有明确在导入前加入了 type 标记的才属于 type 类型，没有明确的加入 type 标记的都属于 variable 类型 */
     type: "type" | "variable"
+    /** 导入内容上方的注释 */
+    leadingComments?: string[]
+    /** 导入内容后方的行尾注释 */
+    trailingComments?: string[]
 }
 
 /** 导入语句 */
@@ -20,6 +24,8 @@ export interface ImportStatement {
     importContents: ImportContent[]
     /** 导入语句上方的注释 */
     leadingComments?: string[]
+    /** 导入语句后方的行尾注释 */
+    trailingComments?: string[]
     /** 在源代码中的起始位置（包括注释） */
     start?: number
     /** 在源代码中的结束位置 */

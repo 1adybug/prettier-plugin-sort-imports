@@ -5,18 +5,21 @@ import {
     ExportNamedDeclaration,
     ImportDeclaration,
 } from "@babel/types"
-import { ImportContent, ImportStatement } from "./types"
+import { ImportContent, ImportStatement } from "./types" /** 解析导入语句 */
 
-/** 解析导入语句 */
 export function parseImports(code: string): ImportStatement[] {
     const ast = parse(code, {
         sourceType: "module",
         plugins: ["typescript", "jsx"],
         errorRecovery: true, // 允许解析有语法错误的代码
+        attachComment: true, // 将注释附加到 AST 节点
     })
 
     const importStatements: ImportStatement[] = []
     const { body } = ast.program
+
+    // 跟踪已使用的注释，避免重复
+    const usedComments = new Set<Comment>()
 
     // 只处理文件开头的连续导入/导出语句块
     for (const node of body) {
@@ -25,7 +28,11 @@ export function parseImports(code: string): ImportStatement[] {
             (node.type === "ExportNamedDeclaration" && node.source) ||
             node.type === "ExportAllDeclaration"
         ) {
-            const statement = parseImportNode(node, ast.comments ?? [])
+            const statement = parseImportNode(
+                node,
+                ast.comments ?? [],
+                usedComments,
+            )
             importStatements.push(statement)
         } else {
             // 遇到非导入/导出语句，停止处理
@@ -40,35 +47,68 @@ export function parseImports(code: string): ImportStatement[] {
 function parseImportNode(
     node: ImportDeclaration | ExportNamedDeclaration | ExportAllDeclaration,
     comments: Comment[],
+    usedComments: Set<Comment>,
 ): ImportStatement {
     const isExport = node.type !== "ImportDeclaration"
     const source = node.source?.value ?? ""
 
-    // 提取导入语句上方的注释
+    // 获取节点所在的行号和位置
+    const nodeStartLine = node.loc?.start.line ?? 0
+    const nodeEndLine = node.loc?.end.line ?? 0
+    const nodeStart = node.start ?? 0
+    let nodeEnd = node.end ?? 0
+
+    // 使用 Babel 自动附加的注释
     const leadingComments: string[] = []
-    let start = node.start ?? 0
+    const trailingComments: string[] = []
+    let start = nodeStart
 
+    // 处理前导注释
     if (node.leadingComments) {
-        // 找到最早的注释位置
-        const firstComment = node.leadingComments[0]
-        if (firstComment.start !== null && firstComment.start !== undefined) {
-            start = firstComment.start
-        }
-
         for (const comment of node.leadingComments) {
-            if (comment.type === "CommentLine") {
-                leadingComments.push(`//${comment.value}`)
-            } else if (comment.type === "CommentBlock") {
-                leadingComments.push(`/*${comment.value}*/`)
+            if (!usedComments.has(comment)) {
+                if (comment.type === "CommentLine") {
+                    leadingComments.push(`//${comment.value}`)
+                } else if (comment.type === "CommentBlock") {
+                    leadingComments.push(`/*${comment.value}*/`)
+                }
+
+                const commentStart = comment.start ?? 0
+                if (commentStart < start) {
+                    start = commentStart
+                }
+
+                usedComments.add(comment)
             }
         }
     }
 
-    const end = node.end ?? 0
+    // 处理行尾注释
+    if (node.trailingComments) {
+        for (const comment of node.trailingComments) {
+            if (!usedComments.has(comment)) {
+                if (comment.type === "CommentLine") {
+                    trailingComments.push(`//${comment.value}`)
+                } else if (comment.type === "CommentBlock") {
+                    trailingComments.push(`/*${comment.value}*/`)
+                }
+
+                const commentEnd = comment.end ?? 0
+                if (commentEnd > nodeEnd) {
+                    nodeEnd = commentEnd
+                }
+
+                usedComments.add(comment)
+            }
+        }
+    }
+
+    const end = nodeEnd
 
     // 处理 import 语句
     if (node.type === "ImportDeclaration") {
-        const importContents = parseImportSpecifiers(node)
+        const isTypeOnlyImport = node.importKind === "type"
+        const importContents = parseImportSpecifiers(node, isTypeOnlyImport)
         const isSideEffect = importContents.length === 0
 
         return {
@@ -78,6 +118,8 @@ function parseImportNode(
             importContents,
             leadingComments:
                 leadingComments.length > 0 ? leadingComments : undefined,
+            trailingComments:
+                trailingComments.length > 0 ? trailingComments : undefined,
             start,
             end,
         }
@@ -92,6 +134,8 @@ function parseImportNode(
             importContents: [],
             leadingComments:
                 leadingComments.length > 0 ? leadingComments : undefined,
+            trailingComments:
+                trailingComments.length > 0 ? trailingComments : undefined,
             start,
             end,
         }
@@ -107,29 +151,68 @@ function parseImportNode(
         importContents,
         leadingComments:
             leadingComments.length > 0 ? leadingComments : undefined,
+        trailingComments:
+            trailingComments.length > 0 ? trailingComments : undefined,
         start,
         end,
     }
 }
 
 /** 解析导入说明符 */
-function parseImportSpecifiers(node: ImportDeclaration): ImportContent[] {
+function parseImportSpecifiers(
+    node: ImportDeclaration,
+    isTypeOnlyImport: boolean = false,
+): ImportContent[] {
     const contents: ImportContent[] = []
 
     for (const specifier of node.specifiers) {
+        // 解析 specifier 的注释
+        const leadingComments: string[] = []
+        const trailingComments: string[] = []
+
+        // 处理前导注释
+        if (specifier.leadingComments) {
+            for (const comment of specifier.leadingComments) {
+                if (comment.type === "CommentLine") {
+                    leadingComments.push(`//${comment.value}`)
+                } else if (comment.type === "CommentBlock") {
+                    leadingComments.push(`/*${comment.value}*/`)
+                }
+            }
+        }
+
+        // 处理行尾注释
+        if (specifier.trailingComments) {
+            for (const comment of specifier.trailingComments) {
+                if (comment.type === "CommentLine") {
+                    trailingComments.push(`//${comment.value}`)
+                } else if (comment.type === "CommentBlock") {
+                    trailingComments.push(`/*${comment.value}*/`)
+                }
+            }
+        }
+
         if (specifier.type === "ImportDefaultSpecifier") {
             // 默认导入
             contents.push({
                 name: "default",
                 alias: specifier.local.name,
-                type: "variable",
+                type: isTypeOnlyImport ? "type" : "variable",
+                leadingComments:
+                    leadingComments.length > 0 ? leadingComments : undefined,
+                trailingComments:
+                    trailingComments.length > 0 ? trailingComments : undefined,
             })
         } else if (specifier.type === "ImportNamespaceSpecifier") {
             // 命名空间导入
             contents.push({
                 name: "*",
                 alias: specifier.local.name,
-                type: "variable",
+                type: isTypeOnlyImport ? "type" : "variable",
+                leadingComments:
+                    leadingComments.length > 0 ? leadingComments : undefined,
+                trailingComments:
+                    trailingComments.length > 0 ? trailingComments : undefined,
             })
         } else if (specifier.type === "ImportSpecifier") {
             // 命名导入
@@ -138,12 +221,17 @@ function parseImportSpecifiers(node: ImportDeclaration): ImportContent[] {
                     ? specifier.imported.name
                     : (specifier.imported as any).value
             const localName = specifier.local.name
-            const isTypeImport = specifier.importKind === "type"
+            const isTypeImport =
+                isTypeOnlyImport || specifier.importKind === "type"
 
             contents.push({
                 name: importedName,
                 alias: importedName !== localName ? localName : undefined,
                 type: isTypeImport ? "type" : "variable",
+                leadingComments:
+                    leadingComments.length > 0 ? leadingComments : undefined,
+                trailingComments:
+                    trailingComments.length > 0 ? trailingComments : undefined,
             })
         }
     }
@@ -161,6 +249,32 @@ function parseExportSpecifiers(node: ExportNamedDeclaration): ImportContent[] {
 
     for (const specifier of node.specifiers) {
         if (specifier.type === "ExportSpecifier") {
+            // 解析 specifier 的注释
+            const leadingComments: string[] = []
+            const trailingComments: string[] = []
+
+            // 处理前导注释
+            if (specifier.leadingComments) {
+                for (const comment of specifier.leadingComments) {
+                    if (comment.type === "CommentLine") {
+                        leadingComments.push(`//${comment.value}`)
+                    } else if (comment.type === "CommentBlock") {
+                        leadingComments.push(`/*${comment.value}*/`)
+                    }
+                }
+            }
+
+            // 处理行尾注释
+            if (specifier.trailingComments) {
+                for (const comment of specifier.trailingComments) {
+                    if (comment.type === "CommentLine") {
+                        trailingComments.push(`//${comment.value}`)
+                    } else if (comment.type === "CommentBlock") {
+                        trailingComments.push(`/*${comment.value}*/`)
+                    }
+                }
+            }
+
             const localName =
                 specifier.local.type === "Identifier"
                     ? specifier.local.name
@@ -175,6 +289,10 @@ function parseExportSpecifiers(node: ExportNamedDeclaration): ImportContent[] {
                 name: localName,
                 alias: localName !== exportedName ? exportedName : undefined,
                 type: isTypeExport ? "type" : "variable",
+                leadingComments:
+                    leadingComments.length > 0 ? leadingComments : undefined,
+                trailingComments:
+                    trailingComments.length > 0 ? trailingComments : undefined,
             })
         }
     }

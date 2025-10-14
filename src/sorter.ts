@@ -1,6 +1,10 @@
-import { Group, ImportContent, ImportStatement, PluginConfig } from "./types"
+import {
+    Group,
+    ImportContent,
+    ImportStatement,
+    PluginConfig,
+} from "./types" /** 导入类型 */
 
-/** 导入类型 */
 type ImportType = "module" | "alias" | "relative"
 
 /** 默认的分组函数，所有导入都在 default 分组 */

@@ -1,30 +1,58 @@
-import { Group, ImportStatement, PluginConfig } from "./types"
+import {
+    Group,
+    ImportStatement,
+    PluginConfig,
+} from "./types" /** 格式化导入语句 */
 
-/** 格式化导入语句 */
 export function formatImportStatement(statement: ImportStatement): string {
-    const { path, isExport, isSideEffect, importContents, leadingComments } =
-        statement
+    const {
+        path,
+        isExport,
+        isSideEffect,
+        importContents,
+        leadingComments,
+        trailingComments,
+    } = statement
 
     const lines: string[] = []
 
-    // 添加注释
+    // 添加前导注释
     if (leadingComments && leadingComments.length > 0) {
         lines.push(...leadingComments)
     }
 
     // 副作用导入
     if (isSideEffect) {
+        let importLine = ""
         if (isExport) {
-            lines.push(`export * from "${path}"`)
+            importLine = `export * from "${path}"`
         } else {
-            lines.push(`import "${path}"`)
+            importLine = `import "${path}"`
         }
+
+        // 添加行尾注释
+        if (trailingComments && trailingComments.length > 0) {
+            importLine += ` ${trailingComments.join(" ")}`
+        }
+
+        lines.push(importLine)
         return lines.join("\n")
     }
+
+    // 检查命名导入是否包含注释
+    const hasNamedImportComments = importContents.some(
+        content =>
+            content.name !== "default" &&
+            content.name !== "*" &&
+            ((content.leadingComments && content.leadingComments.length > 0) ||
+                (content.trailingComments &&
+                    content.trailingComments.length > 0)),
+    )
 
     // 构建导入内容（importContents 已经排序好了，直接按顺序处理）
     const parts: string[] = []
     const namedParts: string[] = []
+    const namedPartsWithComments: string[] = []
 
     for (const content of importContents) {
         // 默认导入
@@ -41,24 +69,94 @@ export function formatImportStatement(statement: ImportStatement): string {
 
         // 命名导入
         const typePrefix = content.type === "type" ? "type " : ""
+        let importItem = ""
         if (content.alias) {
-            namedParts.push(`${typePrefix}${content.name} as ${content.alias}`)
+            importItem = `${typePrefix}${content.name} as ${content.alias}`
         } else {
-            namedParts.push(`${typePrefix}${content.name}`)
+            importItem = `${typePrefix}${content.name}`
+        }
+
+        // 如果有命名导入包含注释，需要使用多行格式
+        if (hasNamedImportComments) {
+            const itemLines: string[] = []
+
+            // 添加前导注释
+            if (content.leadingComments && content.leadingComments.length > 0) {
+                itemLines.push(...content.leadingComments)
+            }
+
+            // 添加导入项本身
+            let itemLine = importItem
+            // 添加行尾注释
+            if (
+                content.trailingComments &&
+                content.trailingComments.length > 0
+            ) {
+                itemLine += ` ${content.trailingComments.join(" ")}`
+            }
+            itemLines.push(itemLine)
+
+            namedPartsWithComments.push(itemLines.join("\n    "))
+        } else {
+            namedParts.push(importItem)
         }
     }
 
-    // 添加命名导入部分
-    if (namedParts.length > 0) {
-        parts.push(`{ ${namedParts.join(", ")} }`)
-    }
+    // 检查是否所有命名导入都是类型
+    const allNamedImportsAreTypes = importContents
+        .filter(c => c.name !== "default" && c.name !== "*")
+        .every(c => c.type === "type")
 
-    // 构建完整的导入语句
-    const importClause = parts.join(", ")
-    if (isExport) {
-        lines.push(`export ${importClause} from "${path}"`)
+    // 检查是否只有命名导入（没有默认导入和命名空间导入）
+    const hasOnlyNamedImports = importContents.every(
+        c => c.name !== "default" && c.name !== "*",
+    )
+
+    // 添加命名导入部分
+    if (hasNamedImportComments && namedPartsWithComments.length > 0) {
+        // 多行格式
+        const keyword = isExport ? "export" : "import"
+        const typeKeyword =
+            allNamedImportsAreTypes && hasOnlyNamedImports ? "type " : ""
+        const defaultPart = parts.length > 0 ? parts.join(", ") + ", " : ""
+        const importStart = `${keyword} ${typeKeyword}${defaultPart}{`
+        const importEnd = `} from "${path}"`
+
+        lines.push(importStart)
+        lines.push(`    ${namedPartsWithComments.join(",\n    ")},`)
+        lines.push(importEnd)
     } else {
-        lines.push(`import ${importClause} from "${path}"`)
+        // 单行格式
+        if (namedParts.length > 0) {
+            // 如果所有命名导入都是类型，且没有默认/命名空间导入，使用 import type
+            if (allNamedImportsAreTypes && hasOnlyNamedImports) {
+                // 移除每个导入项前面的 type 关键字
+                const cleanedParts = namedParts.map(part =>
+                    part.replace(/^type /, ""),
+                )
+                parts.push(`{ ${cleanedParts.join(", ")} }`)
+            } else {
+                parts.push(`{ ${namedParts.join(", ")} }`)
+            }
+        }
+
+        // 构建完整的导入语句
+        const importClause = parts.join(", ")
+        const typeKeyword =
+            allNamedImportsAreTypes && hasOnlyNamedImports ? "type " : ""
+        let importLine = ""
+        if (isExport) {
+            importLine = `export ${typeKeyword}${importClause} from "${path}"`
+        } else {
+            importLine = `import ${typeKeyword}${importClause} from "${path}"`
+        }
+
+        // 添加行尾注释
+        if (trailingComments && trailingComments.length > 0) {
+            importLine += ` ${trailingComments.join(" ")}`
+        }
+
+        lines.push(importLine)
     }
 
     return lines.join("\n")

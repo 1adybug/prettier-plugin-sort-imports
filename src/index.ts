@@ -87,7 +87,12 @@ function preprocessImports(
         const beforeImports = text.slice(0, startIndex)
         const afterImports = text.slice(endIndex)
 
-        return beforeImports + formattedImports + "\n" + afterImports
+        // 确保导入语句后面有适当的换行
+        // 如果 afterImports 不是以换行开始,添加两个换行
+        const needsExtraNewline = afterImports && !afterImports.startsWith("\n")
+        const separator = needsExtraNewline ? "\n\n" : "\n"
+
+        return beforeImports + formattedImports + separator + afterImports
     } catch (error) {
         // 如果解析失败，返回原始文本
         console.error("Failed to sort imports:", error)
