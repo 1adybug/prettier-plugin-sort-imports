@@ -10,5 +10,13 @@ export default defineConfig({
                 externals: [/^@babel\//],
             },
         },
+        {
+            format: "cjs",
+            syntax: ["node 18"],
+            dts: true,
+            output: {
+                externals: [/^@babel\//],
+            },
+        },
     ],
 })
