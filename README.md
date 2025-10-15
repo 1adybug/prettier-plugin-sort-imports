@@ -198,6 +198,43 @@ export default {
 }
 ```
 
+### Method 3: Config File Path
+
+Use `sortImportsConfigPath` option to load configuration from an external file:
+
+```javascript
+// prettier.config.mjs
+export default {
+    plugins: ["prettier-plugin-import-sorts"],
+    sortImportsConfigPath: "./import-sort.config.js",
+}
+```
+
+```javascript
+// import-sort.config.js (or import-sort.config.cjs)
+module.exports = {
+    getGroup: importStatement => {
+        const path = importStatement.path
+        if (path.startsWith("react")) return "react"
+        if (path.startsWith("@/")) return "internal"
+        if (path.startsWith(".")) return "relative"
+        return "external"
+    },
+    sortGroup: (a, b) => {
+        const order = ["react", "external", "internal", "relative"]
+        return order.indexOf(a.name) - order.indexOf(b.name)
+    },
+    separator: "\n",
+}
+```
+
+**Important Notes**:
+
+- Config file must use **CommonJS format** (`module.exports`), ESM format (`export default`) is not supported
+- If your project has `"type": "module"` in `package.json`, use `.cjs` extension (e.g., `import-sort.config.cjs`)
+- Config file path is resolved relative to the project root (`process.cwd()`)
+- Configuration priority: `createPlugin` parameters > `sortImportsConfigPath` loaded config > Prettier config options
+
 ### importSortRemoveUnused
 
 Whether to remove unused imports, defaults to `false`.

@@ -5,6 +5,7 @@ import {
     ExportNamedDeclaration,
     ImportDeclaration,
 } from "@babel/types"
+
 import { ImportContent, ImportStatement } from "./types" /** 解析导入语句 */
 
 export function parseImports(code: string): ImportStatement[] {
@@ -91,8 +92,11 @@ function parseImportNode(
                 // 检查注释是否与节点在同一行
                 const commentLoc = comment.loc
                 const nodeLoc = node.loc
-                const isSameLine = commentLoc && nodeLoc && commentLoc.start.line === nodeLoc.end.line
-                
+                const isSameLine =
+                    commentLoc &&
+                    nodeLoc &&
+                    commentLoc.start.line === nodeLoc.end.line
+
                 if (isSameLine) {
                     if (comment.type === "CommentLine") {
                         trailingComments.push(`//${comment.value}`)
