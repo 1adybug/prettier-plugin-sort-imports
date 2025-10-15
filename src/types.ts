@@ -1,3 +1,5 @@
+import { Plugin } from "prettier"
+
 /** 导入内容 */
 export interface ImportContent {
     /** 导入的内容的名称 */
@@ -84,4 +86,8 @@ export interface PluginConfig {
     sortSideEffect?: boolean
     /** 是否删除未使用的导入，默认为 false */
     removeUnusedImports?: boolean
+    /** 要合并的其他 Prettier 插件，按传入顺序执行 */
+    otherPlugins?: Plugin[]
+    /** 传递给其他插件的 Prettier 配置选项 */
+    prettierOptions?: Record<string, any>
 }

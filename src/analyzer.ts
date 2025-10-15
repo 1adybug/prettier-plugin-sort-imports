@@ -6,7 +6,6 @@ import {
     JSXIdentifier,
     TSTypeReference,
 } from "@babel/types"
-
 import {
     ImportContent,
     ImportStatement,

@@ -1,0 +1,13 @@
+{
+    "permissions": {
+        "allow": [
+            "WebSearch",
+            "WebFetch(domain:github.com)",
+            "Bash(npx prettier:*)",
+            "Bash(npm run build:*)",
+            "Bash(npm run format:*)"
+        ],
+        "deny": [],
+        "ask": []
+    }
+}

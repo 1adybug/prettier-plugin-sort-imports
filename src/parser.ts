@@ -5,8 +5,9 @@ import {
     ExportNamedDeclaration,
     ImportDeclaration,
 } from "@babel/types"
+import { ImportContent, ImportStatement } from "./types"
 
-import { ImportContent, ImportStatement } from "./types" /** 解析导入语句 */
+/** 解析导入语句 */
 
 export function parseImports(code: string): ImportStatement[] {
     const ast = parse(code, {
@@ -155,7 +156,8 @@ function parseImportNode(
     }
 
     // 处理 export { ... } from 语句
-    const importContents = parseExportSpecifiers(node)
+    const isTypeOnlyExport = node.exportKind === "type"
+    const importContents = parseExportSpecifiers(node, isTypeOnlyExport)
 
     return {
         path: source,
@@ -253,7 +255,10 @@ function parseImportSpecifiers(
 }
 
 /** 解析导出说明符 */
-function parseExportSpecifiers(node: ExportNamedDeclaration): ImportContent[] {
+function parseExportSpecifiers(
+    node: ExportNamedDeclaration,
+    isTypeOnlyExport: boolean = false,
+): ImportContent[] {
     const contents: ImportContent[] = []
 
     if (!node.specifiers) {
@@ -296,7 +301,8 @@ function parseExportSpecifiers(node: ExportNamedDeclaration): ImportContent[] {
                 specifier.exported.type === "Identifier"
                     ? specifier.exported.name
                     : (specifier.exported as any).value
-            const isTypeExport = specifier.exportKind === "type"
+            const isTypeExport =
+                isTypeOnlyExport || specifier.exportKind === "type"
 
             contents.push({
                 name: localName,

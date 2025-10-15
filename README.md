@@ -19,7 +19,7 @@ A powerful Prettier plugin for intelligently grouping and sorting import stateme
 ### Installation
 
 ```bash
-npm install prettier-plugin-import-sorts --save-dev
+npm install @1adybug/prettier-plugin-sort-imports --save-dev
 ```
 
 ### Basic Configuration
@@ -28,7 +28,7 @@ Add the plugin to your `prettier.config.mjs`:
 
 ```javascript
 export default {
-    plugins: ["prettier-plugin-import-sorts"],
+    plugins: ["@1adybug/prettier-plugin-sort-imports"],
 }
 ```
 
@@ -50,7 +50,7 @@ npx prettier --write "src/**/*.{js,ts,jsx,tsx}"
 
 ```javascript
 // prettier.config.mjs
-import { createPlugin } from "prettier-plugin-import-sorts"
+import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
 
 export default {
     plugins: [
@@ -157,40 +157,46 @@ interface PluginConfig {
 
 ### Method 1: Simple Configuration
 
-Configure basic options via Prettier config file:
+Use the default plugin with basic options:
 
 ```javascript
 export default {
-    plugins: ["prettier-plugin-import-sorts"],
+    plugins: ["@1adybug/prettier-plugin-sort-imports"],
     importSortSideEffect: false, // Whether to sort side effect imports
     importSortSeparator: "", // Group separator
     importSortRemoveUnused: false, // Whether to remove unused imports
 }
 ```
 
-### Method 2: Advanced Configuration (Factory Function)
+### Method 2: Advanced Configuration
 
-Use `createPlugin` function to pass custom functions:
+Use `createPlugin` function for full control and plugin compatibility:
 
 ```javascript
-import { createPlugin } from "prettier-plugin-import-sorts"
+import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
 
 export default {
     plugins: [
         createPlugin({
+            // Custom sorting functions
             getGroup: statement => {
-                /* Custom grouping logic */
+                if (statement.path.startsWith("react")) return "react"
+                if (!statement.path.startsWith(".")) return "external"
+                return "local"
             },
             sortGroup: (a, b) => {
-                /* Custom sorting */
+                const order = ["react", "external", "local"]
+                return order.indexOf(a.name) - order.indexOf(b.name)
             },
             sortImportStatement: (a, b) => {
-                /* Custom sorting */
+                return a.path.localeCompare(b.path)
             },
             sortImportContent: (a, b) => {
-                /* Custom sorting */
+                return a.name.localeCompare(b.name)
             },
-            separator: "",
+
+            // Configuration
+            separator: "\n",
             sortSideEffect: true,
             removeUnusedImports: false,
         }),
@@ -198,42 +204,149 @@ export default {
 }
 ```
 
-### Method 3: Config File Path
+### Method 3: Custom Plugin Module
 
-Use `sortImportsConfigPath` option to load configuration from an external file:
+Create a custom plugin module for better organization and reusability:
+
+**Step 1**: Create a custom plugin file `prettier-plugin-sort-imports.mjs`:
+
+```javascript
+// prettier-plugin-sort-imports.mjs
+import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
+
+export default createPlugin({
+    // Custom grouping logic
+    getGroup: statement => {
+        const path = statement.path
+
+        // React and related libraries
+        if (path.startsWith("react") || path.startsWith("@react")) {
+            return "react"
+        }
+
+        // UI libraries
+        if (path.includes("antd") || path.includes("@mui") || path.includes("chakra")) {
+            return "ui"
+        }
+
+        // Utility libraries
+        if (path.includes("lodash") || path.includes("ramda") || path.includes("date-fns")) {
+            return "utils"
+        }
+
+        // External packages (node_modules)
+        if (!path.startsWith(".") && !path.startsWith("@/")) {
+            return "external"
+        }
+
+        // Internal aliases (@/)
+        if (path.startsWith("@/")) {
+            return "internal"
+        }
+
+        // Relative imports
+        return "relative"
+    },
+
+    // Define group order
+    sortGroup: (a, b) => {
+        const order = ["react", "external", "ui", "utils", "internal", "relative"]
+        return order.indexOf(a.name) - order.indexOf(b.name)
+    },
+
+    // Custom import content sorting
+    sortImportContent: (a, b) => {
+        // Types first, then variables
+        if (a.type !== b.type) {
+            return a.type === "type" ? -1 : 1
+        }
+
+        // Alphabetical order within same type
+        const aName = a.alias ?? a.name
+        const bName = b.alias ?? b.name
+        return aName.localeCompare(bName)
+    },
+
+    // Add blank lines between groups
+    separator: "\n",
+
+    // Sort side effects
+    sortSideEffect: true,
+})
+```
+
+**Step 2**: Use the custom plugin in your `prettier.config.mjs`:
 
 ```javascript
 // prettier.config.mjs
 export default {
-    plugins: ["prettier-plugin-import-sorts"],
-    sortImportsConfigPath: "./import-sort.config.js",
+    plugins: ["./prettier-plugin-sort-imports.mjs"],
+    // Other prettier options...
+    semi: false,
+    tabWidth: 4,
 }
 ```
+
+**Benefits of this approach**:
+- ✅ **Reusable**: Share the same configuration across multiple projects
+- ✅ **Version Control**: Track your import sorting rules in git
+- ✅ **Maintainable**: Keep complex logic separate from prettier config
+- ✅ **Team Collaboration**: Consistent import sorting rules across team members
+
+### Method 4: Plugin Compatibility
+
+Use `createPlugin` with `otherPlugins` to merge with other Prettier plugins and avoid conflicts:
 
 ```javascript
-// import-sort.config.js (or import-sort.config.cjs)
-module.exports = {
-    getGroup: importStatement => {
-        const path = importStatement.path
-        if (path.startsWith("react")) return "react"
-        if (path.startsWith("@/")) return "internal"
-        if (path.startsWith(".")) return "relative"
-        return "external"
-    },
-    sortGroup: (a, b) => {
-        const order = ["react", "external", "internal", "relative"]
-        return order.indexOf(a.name) - order.indexOf(b.name)
-    },
-    separator: "\n",
+import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
+import * as tailwindPlugin from "prettier-plugin-tailwindcss"
+
+export default {
+    plugins: [
+        createPlugin({
+            // Your import sorting configuration
+            getGroup: statement => {
+                if (statement.path.startsWith("react")) return "react"
+                if (!statement.path.startsWith(".")) return "external"
+                return "local"
+            },
+            separator: "\n",
+
+            // Other Prettier plugins to combine with (Plugin objects only)
+            otherPlugins: [
+                tailwindPlugin, // Import the plugin directly
+                // Add more plugins as needed...
+            ],
+
+            // Configuration options for other plugins
+            prettierOptions: {
+                // TailwindCSS plugin options
+                tailwindConfig: "./tailwind.config.js",
+                tailwindFunctions: ["clsx", "cn", "cva"],
+                tailwindAttributes: ["class", "className", "ngClass", ":class"],
+
+                // Other plugin options can go here...
+            },
+        }),
+    ],
 }
 ```
 
-**Important Notes**:
+**Important Notes:**
 
-- Config file must use **CommonJS format** (`module.exports`), ESM format (`export default`) is not supported
-- If your project has `"type": "module"` in `package.json`, use `.cjs` extension (e.g., `import-sort.config.cjs`)
-- Config file path is resolved relative to the project root (`process.cwd()`)
-- Configuration priority: `createPlugin` parameters > `sortImportsConfigPath` loaded config > Prettier config options
+- `otherPlugins` only accepts imported Plugin objects, not string plugin names
+- You must import the plugins yourself to ensure proper module resolution
+- This approach avoids complex module loading issues and gives you full control
+
+**Plugin Execution Order:**
+
+- Other plugins are executed in the order they appear in the `otherPlugins` array
+- Import sorting is always executed last to ensure compatibility
+
+**Configuration Passing:**
+
+- Options in `prettierOptions` are passed to all other plugins
+- This allows other plugins to receive their configuration even when merged
 
 ### importSortRemoveUnused
 
@@ -427,7 +540,7 @@ Prettier natively cannot accept functions as configuration parameters (because c
 
 ```javascript
 // Factory function is called in config file, returning a plugin instance
-import { createPlugin } from "prettier-plugin-import-sorts"
+import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
 
 export default {
     plugins: [
