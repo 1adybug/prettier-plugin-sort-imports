@@ -8,6 +8,8 @@ import { parseImports } from "./parser"
 import { groupImports, mergeImports, sortGroups, sortImports } from "./sorter"
 import { PluginConfig } from "./types"
 
+export * from "./types"
+
 const require = createRequire(import.meta.url)
 
 // 存储用户配置
