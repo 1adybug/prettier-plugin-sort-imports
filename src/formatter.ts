@@ -165,7 +165,7 @@ export function formatImportStatement(statement: ImportStatement): string {
 
     // 添加被移除导入的行尾注释（作为独立的注释行）
     if (removedTrailingComments && removedTrailingComments.length > 0) {
-        lines.push("")  // 添加空行
+        lines.push("") // 添加空行
         lines.push(...removedTrailingComments)
     }
 

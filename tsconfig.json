@@ -11,7 +11,7 @@
         "useDefineForClassFields": true,
         "allowImportingTsExtensions": true,
         "esModuleInterop": false,
-        "allowSyntheticDefaultImports": false,
+        "allowSyntheticDefaultImports": false
     },
     "include": ["src"],
     "exclude": ["test", "node_modules", "dist"]

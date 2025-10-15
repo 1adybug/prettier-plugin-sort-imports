@@ -354,15 +354,15 @@ export function mergeImports(imports: ImportStatement[]): ImportStatement[] {
             // 1. 前置注释：合并所有导入的前置注释，按顺序排列
             // 2. 行尾注释：只保留第一个导入的行尾注释
             // 3. 被移除导入的行尾注释：存储到 removedTrailingComments，稍后输出为独立的注释行
-            
+
             const mergedLeadingComments = [
                 ...(existing.leadingComments ?? []),
                 ...(statement.leadingComments ?? []),
             ]
-            
+
             // 只保留第一个导入的行尾注释
             const mergedTrailingComments = existing.trailingComments ?? []
-            
+
             // 收集被移除导入的行尾注释
             const removedTrailingComments = [
                 ...(existing.removedTrailingComments ?? []),

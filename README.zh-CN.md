@@ -198,6 +198,43 @@ export default {
 }
 ```
 
+### 方式 3：配置文件路径
+
+使用 `sortImportsConfigPath` 选项从外部文件加载配置：
+
+```javascript
+// prettier.config.mjs
+export default {
+    plugins: ["prettier-plugin-import-sorts"],
+    sortImportsConfigPath: "./import-sort.config.js",
+}
+```
+
+```javascript
+// import-sort.config.js (或 import-sort.config.cjs)
+module.exports = {
+    getGroup: importStatement => {
+        const path = importStatement.path
+        if (path.startsWith("react")) return "react"
+        if (path.startsWith("@/")) return "internal"
+        if (path.startsWith(".")) return "relative"
+        return "external"
+    },
+    sortGroup: (a, b) => {
+        const order = ["react", "external", "internal", "relative"]
+        return order.indexOf(a.name) - order.indexOf(b.name)
+    },
+    separator: "\n",
+}
+```
+
+**重要提示**：
+
+- 配置文件必须使用 **CommonJS 格式**（`module.exports`），不支持 ESM 格式（`export default`）
+- 如果你的项目在 `package.json` 中设置了 `"type": "module"`，请使用 `.cjs` 扩展名（如 `import-sort.config.cjs`）
+- 配置文件路径相对于项目根目录（`process.cwd()`）解析
+- 配置优先级：`createPlugin` 参数 > `sortImportsConfigPath` 加载的配置 > Prettier 配置选项
+
 ### importSortRemoveUnused
 
 是否删除未使用的导入，默认为 `false`。

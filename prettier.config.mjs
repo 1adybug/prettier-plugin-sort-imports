@@ -1,5 +1,5 @@
 // @ts-check
-import { createPlugin } from "./dist/index.js"
+import plugin from "./dist/index.js"
 
 /**
  * @type {import("prettier").Options}
@@ -10,7 +10,7 @@ const config = {
     tabWidth: 4,
     arrowParens: "avoid",
     endOfLine: "lf",
-    plugins: [createPlugin()],
+    plugins: [plugin],
 }
 
 export default config

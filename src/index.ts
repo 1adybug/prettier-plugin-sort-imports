@@ -1,5 +1,7 @@
 import { createRequire } from "module"
+import { resolve } from "path"
 import { ParserOptions, Plugin } from "prettier"
+
 import { removeUnusedImportsFromStatements } from "./analyzer"
 import { formatGroups, formatImportStatements } from "./formatter"
 import { parseImports } from "./parser"
@@ -10,6 +12,53 @@ const require = createRequire(import.meta.url)
 
 // 存储用户配置
 let userConfig: PluginConfig = {}
+
+// 存储已加载的配置路径，避免重复加载
+const configCache = new Map<string, PluginConfig>()
+
+/** 同步加载配置文件 */
+function loadConfigFromPath(configPath: string): PluginConfig {
+    // 检查缓存
+    if (configCache.has(configPath)) {
+        return configCache.get(configPath)!
+    }
+
+    try {
+        // 解析为绝对路径
+        const absolutePath = resolve(process.cwd(), configPath)
+
+        let config: PluginConfig = {}
+
+        // 尝试使用 require 加载 CJS 模块
+        try {
+            // 清除 require 缓存，确保每次都能加载最新配置
+            delete require.cache[absolutePath]
+
+            const module = require(absolutePath)
+            config = module.default || module || {}
+        } catch (requireError) {
+            // 如果 require 失败，尝试使用动态 import（但这是同步环境，需要特殊处理）
+            // 对于 ESM 模块，我们需要用户使用 .mjs 扩展名或在 package.json 中设置 "type": "module"
+            // 在同步环境中，我们只能使用 require，因此建议配置文件使用 CJS 格式
+            throw new Error(
+                `Failed to load config file: ${configPath}. ` +
+                    `Please ensure the config file uses CommonJS format (module.exports) ` +
+                    `or has a .cjs extension. ESM format (.mjs or "type": "module") is not supported ` +
+                    `in synchronous loading context.\nOriginal error: ${requireError}`,
+            )
+        }
+
+        // 缓存配置
+        configCache.set(configPath, config)
+
+        return config
+    } catch (error) {
+        console.error(`Failed to load config from ${configPath}:`, error)
+        const emptyConfig = {}
+        configCache.set(configPath, emptyConfig)
+        return emptyConfig
+    }
+}
 
 /** 预处理导入语句 */
 function preprocessImports(
@@ -24,26 +73,46 @@ function preprocessImports(
             return text
         }
 
-        // 构建配置（优先使用 userConfig，然后是 options）
+        // 检查是否有配置文件路径
+        const configPath = (options as any).sortImportsConfigPath
+        let fileConfig: PluginConfig = {}
+
+        // 如果提供了配置文件路径，加载配置
+        if (configPath && typeof configPath === "string") {
+            fileConfig = loadConfigFromPath(configPath)
+        }
+
+        // 构建配置（优先级：userConfig > fileConfig > options）
         const config: PluginConfig = {
-            getGroup: userConfig.getGroup ?? (options as any).getGroup,
-            sortGroup: userConfig.sortGroup ?? (options as any).sortGroup,
+            getGroup:
+                userConfig.getGroup ??
+                fileConfig.getGroup ??
+                (options as any).getGroup,
+            sortGroup:
+                userConfig.sortGroup ??
+                fileConfig.sortGroup ??
+                (options as any).sortGroup,
             sortImportStatement:
                 userConfig.sortImportStatement ??
+                fileConfig.sortImportStatement ??
                 (options as any).sortImportStatement,
             sortImportContent:
                 userConfig.sortImportContent ??
+                fileConfig.sortImportContent ??
                 (options as any).sortImportContent,
             separator:
                 userConfig.separator ??
+                fileConfig.separator ??
                 (options as any).importSortSeparator ??
                 (options as any).separator,
             sortSideEffect:
                 userConfig.sortSideEffect ??
+                fileConfig.sortSideEffect ??
                 (options as any).importSortSideEffect ??
                 false,
             removeUnusedImports:
                 userConfig.removeUnusedImports ??
+                fileConfig.removeUnusedImports ??
                 (options as any).importSortRemoveUnused ??
                 false,
         }
@@ -127,6 +196,11 @@ function createPluginInstance(): Plugin {
             },
         },
         options: {
+            sortImportsConfigPath: {
+                type: "string",
+                category: "Import Sort",
+                description: "配置文件路径，用于加载自定义排序配置",
+            },
             importSortSeparator: {
                 type: "string",
                 category: "Import Sort",

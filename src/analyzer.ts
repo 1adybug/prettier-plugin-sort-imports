@@ -1,12 +1,12 @@
 import { parse } from "@babel/parser"
-import traverse from "@babel/traverse"
-import { NodePath } from "@babel/traverse"
+import traverse, { NodePath } from "@babel/traverse"
 import {
     ExportNamedDeclaration,
     Identifier,
     JSXIdentifier,
     TSTypeReference,
 } from "@babel/types"
+
 import {
     ImportContent,
     ImportStatement,

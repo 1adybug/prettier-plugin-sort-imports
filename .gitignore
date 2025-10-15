@@ -23,4 +23,3 @@ yarn.lock
 yarn-error.log
 .yarnrc.yml
 .yarn
-test*
