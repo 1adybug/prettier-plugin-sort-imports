@@ -19,7 +19,7 @@
 ### 安装
 
 ```bash
-npm install prettier-plugin-import-sorts --save-dev
+npm install @1adybug/prettier-plugin-sort-imports --save-dev
 ```
 
 ### 基础配置
@@ -28,7 +28,7 @@ npm install prettier-plugin-import-sorts --save-dev
 
 ```javascript
 export default {
-    plugins: ["prettier-plugin-import-sorts"],
+    plugins: ["@1adybug/prettier-plugin-sort-imports"],
 }
 ```
 
@@ -50,7 +50,7 @@ npx prettier --write "src/**/*.{js,ts,jsx,tsx}"
 
 ```javascript
 // prettier.config.mjs
-import { createPlugin } from "prettier-plugin-import-sorts"
+import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
 
 export default {
     plugins: [
@@ -161,7 +161,7 @@ interface PluginConfig {
 
 ```javascript
 export default {
-    plugins: ["prettier-plugin-import-sorts"],
+    plugins: ["@1adybug/prettier-plugin-sort-imports"],
     importSortSideEffect: false, // 是否对副作用导入排序
     importSortSeparator: "", // 分组分隔符
     importSortRemoveUnused: false, // 是否删除未使用的导入
@@ -173,7 +173,7 @@ export default {
 使用 `createPlugin` 函数可以传递自定义函数：
 
 ```javascript
-import { createPlugin } from "prettier-plugin-import-sorts"
+import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
 
 export default {
     plugins: [
@@ -198,42 +198,149 @@ export default {
 }
 ```
 
-### 方式 3：配置文件路径
+### 方式 3：自定义插件模块
 
-使用 `sortImportsConfigPath` 选项从外部文件加载配置：
+创建自定义插件模块以获得更好的组织性和可复用性：
+
+**步骤 1**：创建自定义插件文件 `prettier-plugin-sort-imports.mjs`：
+
+```javascript
+// prettier-plugin-sort-imports.mjs
+import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
+
+export default createPlugin({
+    // 自定义分组逻辑
+    getGroup: statement => {
+        const path = statement.path
+
+        // React 及相关库
+        if (path.startsWith("react") || path.startsWith("@react")) {
+            return "react"
+        }
+
+        // UI 库
+        if (path.includes("antd") || path.includes("@mui") || path.includes("chakra")) {
+            return "ui"
+        }
+
+        // 工具库
+        if (path.includes("lodash") || path.includes("ramda") || path.includes("date-fns")) {
+            return "utils"
+        }
+
+        // 外部包 (node_modules)
+        if (!path.startsWith(".") && !path.startsWith("@/")) {
+            return "external"
+        }
+
+        // 内部别名 (@/)
+        if (path.startsWith("@/")) {
+            return "internal"
+        }
+
+        // 相对导入
+        return "relative"
+    },
+
+    // 定义分组顺序
+    sortGroup: (a, b) => {
+        const order = ["react", "external", "ui", "utils", "internal", "relative"]
+        return order.indexOf(a.name) - order.indexOf(b.name)
+    },
+
+    // 自定义导入内容排序
+    sortImportContent: (a, b) => {
+        // 类型在前，变量在后
+        if (a.type !== b.type) {
+            return a.type === "type" ? -1 : 1
+        }
+
+        // 同类型内按字母顺序
+        const aName = a.alias ?? a.name
+        const bName = b.alias ?? b.name
+        return aName.localeCompare(bName)
+    },
+
+    // 在分组间添加空行
+    separator: "\n",
+
+    // 排序副作用导入
+    sortSideEffect: true,
+})
+```
+
+**步骤 2**：在 `prettier.config.mjs` 中使用自定义插件：
 
 ```javascript
 // prettier.config.mjs
 export default {
-    plugins: ["prettier-plugin-import-sorts"],
-    sortImportsConfigPath: "./import-sort.config.js",
+    plugins: ["./prettier-plugin-sort-imports.mjs"],
+    // 其他 prettier 选项...
+    semi: false,
+    tabWidth: 4,
 }
 ```
+
+**此方法的优点**：
+- ✅ **可复用**：在多个项目间共享相同配置
+- ✅ **版本控制**：在 git 中跟踪你的导入排序规则
+- ✅ **易维护**：将复杂逻辑从 prettier 配置中分离
+- ✅ **团队协作**：团队成员间保持一致的导入排序规则
+
+### 方式 4：插件兼容性
+
+使用 `createPlugin` 的 `otherPlugins` 参数与其他 Prettier 插件合并，避免冲突：
 
 ```javascript
-// import-sort.config.js (或 import-sort.config.cjs)
-module.exports = {
-    getGroup: importStatement => {
-        const path = importStatement.path
-        if (path.startsWith("react")) return "react"
-        if (path.startsWith("@/")) return "internal"
-        if (path.startsWith(".")) return "relative"
-        return "external"
-    },
-    sortGroup: (a, b) => {
-        const order = ["react", "external", "internal", "relative"]
-        return order.indexOf(a.name) - order.indexOf(b.name)
-    },
-    separator: "\n",
+import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
+import * as tailwindPlugin from "prettier-plugin-tailwindcss"
+
+export default {
+    plugins: [
+        createPlugin({
+            // 你的导入排序配置
+            getGroup: statement => {
+                if (statement.path.startsWith("react")) return "react"
+                if (!statement.path.startsWith(".")) return "external"
+                return "local"
+            },
+            separator: "\n",
+
+            // 要合并的其他 Prettier 插件（仅支持 Plugin 对象）
+            otherPlugins: [
+                tailwindPlugin, // 直接导入插件
+                // 根据需要添加更多插件...
+            ],
+
+            // 其他插件的配置选项
+            prettierOptions: {
+                // TailwindCSS 插件选项
+                tailwindConfig: "./tailwind.config.js",
+                tailwindFunctions: ["clsx", "cn", "cva"],
+                tailwindAttributes: ["class", "className", "ngClass", ":class"],
+
+                // 其他插件选项可以在这里配置...
+            },
+        }),
+    ],
 }
 ```
 
-**重要提示**：
+**重要说明**：
 
-- 配置文件必须使用 **CommonJS 格式**（`module.exports`），不支持 ESM 格式（`export default`）
-- 如果你的项目在 `package.json` 中设置了 `"type": "module"`，请使用 `.cjs` 扩展名（如 `import-sort.config.cjs`）
-- 配置文件路径相对于项目根目录（`process.cwd()`）解析
-- 配置优先级：`createPlugin` 参数 > `sortImportsConfigPath` 加载的配置 > Prettier 配置选项
+- `otherPlugins` 只接受导入的 Plugin 对象，不支持字符串插件名称
+- 你必须自己导入插件以确保正确的模块解析
+- 这种方法避免了复杂的模块加载问题，给你完全的控制权
+
+**插件执行顺序**：
+
+- 其他插件按照在 `otherPlugins` 数组中出现的顺序执行
+- 导入排序始终最后执行以确保兼容性
+
+**配置传递**：
+
+- `prettierOptions` 中的选项会传递给所有其他插件
+- 这允许其他插件即使在合并时也能接收到它们的配置
 
 ### importSortRemoveUnused
 
@@ -427,7 +534,7 @@ Prettier 原生无法接受函数作为配置参数（因为配置需要序列�
 
 ```javascript
 // 工厂函数在配置文件中被调用，返回一个插件实例
-import { createPlugin } from "prettier-plugin-import-sorts"
+import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
 
 export default {
     plugins: [

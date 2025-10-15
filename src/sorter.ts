@@ -101,7 +101,10 @@ const DEFAULT_CONFIG = {
 
 /** 合并后的配置 */
 export interface MergedConfig
-    extends Omit<Required<PluginConfig>, "separator" | "removeUnusedImports"> {
+    extends Omit<
+        Required<PluginConfig>,
+        "separator" | "removeUnusedImports" | "otherPlugins" | "prettierOptions"
+    > {
     separator: PluginConfig["separator"]
     removeUnusedImports: boolean
 }

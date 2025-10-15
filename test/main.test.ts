@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test"
+import { describe, expect, it } from "bun:test"
 import { format } from "prettier"
 import plugin, { createPlugin } from "../dist/index.js"
 
@@ -103,7 +103,8 @@ const c = <Card />`
         const result = await formatCode(input)
 
         // type 类型在前，然后是普通导入
-        expect(result).toBe(`import { type ButtonProps, type CardProps, Button, Card } from "@/components";
+        expect(result)
+            .toBe(`import { type ButtonProps, type CardProps, Button, Card } from "@/components";
 
 const btn: ButtonProps = {};
 const card: CardProps = {};
@@ -234,7 +235,8 @@ const node: ReactNode = null`
         const result = await formatCode(input)
 
         // type 类型在前，然后是普通导入
-        expect(result).toBe(`import { type FC, type ReactNode, useState } from "react";
+        expect(result)
+            .toBe(`import { type FC, type ReactNode, useState } from "react";
 
 const Component: FC = () => null;
 const state = useState(0);
@@ -251,7 +253,8 @@ type Props = PropsWithChildren`
 
         const result = await formatCode(input)
 
-        expect(result).toBe(`import type { FC, PropsWithChildren, ReactNode } from "react";
+        expect(result)
+            .toBe(`import type { FC, PropsWithChildren, ReactNode } from "react";
 
 const Component: FC = () => null;
 const node: ReactNode = null;
@@ -434,4 +437,3 @@ const card = Card;
 `)
     })
 })
-
