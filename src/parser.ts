@@ -6,6 +6,14 @@ import { ImportContent, ImportStatement } from "./types"
 /** 解析导入语句 */
 
 export function parseImports(code: string): ImportStatement[] {
+    // 首先快速检查是否有导入/导出语句
+    // 如果没有，直接返回空数组，避免 attachComment 导致的问题
+    const hasImportOrExport = /^\s*(import|export)\s/m.test(code)
+
+    if (!hasImportOrExport) {
+        return []
+    }
+
     const ast = parse(code, {
         sourceType: "module",
         plugins: ["typescript", "jsx"],
