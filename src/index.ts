@@ -1,4 +1,5 @@
 import { createRequire } from "module"
+
 import { ParserOptions, Plugin } from "prettier"
 
 import { removeUnusedImportsFromStatements } from "./analyzer"

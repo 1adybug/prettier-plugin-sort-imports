@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test"
 import { format } from "prettier"
-import plugin, { createPlugin } from "../dist/index.js"
 import * as tailwindPlugin from "prettier-plugin-tailwindcss"
+
+import plugin, { createPlugin } from "../dist/index.js"
 
 /** 格式化代码的辅助函数 */
 async function formatCode(code: string, config?: any): Promise<string> {

@@ -1,5 +1,6 @@
 import { parse } from "@babel/parser"
 import { Comment, ExportAllDeclaration, ExportNamedDeclaration, ImportDeclaration } from "@babel/types"
+
 import { ImportContent, ImportStatement } from "./types"
 
 /** 解析导入语句 */
@@ -19,10 +20,12 @@ export function parseImports(code: string): ImportStatement[] {
     const usedComments = new Set<Comment>()
 
     // 只处理文件开头的连续导入/导出语句块
+    let isFirstImport = true
     for (const node of body) {
         if (node.type === "ImportDeclaration" || (node.type === "ExportNamedDeclaration" && node.source) || node.type === "ExportAllDeclaration") {
-            const statement = parseImportNode(node, ast.comments ?? [], usedComments)
+            const statement = parseImportNode(node, ast.comments ?? [], usedComments, code, isFirstImport)
             importStatements.push(statement)
+            isFirstImport = false
         } else {
             // 遇到非导入/导出语句，停止处理
             break
@@ -37,6 +40,8 @@ function parseImportNode(
     node: ImportDeclaration | ExportNamedDeclaration | ExportAllDeclaration,
     comments: Comment[],
     usedComments: Set<Comment>,
+    code: string,
+    isFirstImport: boolean,
 ): ImportStatement {
     const isExport = node.type !== "ImportDeclaration"
     const source = node.source?.value ?? ""
@@ -51,11 +56,26 @@ function parseImportNode(
     const leadingComments: string[] = []
     const trailingComments: string[] = []
     let start = nodeStart
+    let emptyLinesAfterComments = 0
 
     // 处理前导注释
     if (node.leadingComments) {
+        let lastCommentEndLine = 0
+
         for (const comment of node.leadingComments) {
             if (!usedComments.has(comment)) {
+                const commentEndLine = comment.loc?.end.line ?? 0
+
+                // 如果是第一个 import 且注释和节点之间有空行，则该注释属于文件顶部
+                // 不应该作为 import 的前导注释
+                const emptyLinesBetween = nodeStartLine - commentEndLine - 1
+                if (isFirstImport && emptyLinesBetween >= 1) {
+                    // 这是文件顶部注释，不添加为 leadingComments
+                    // 但需要标记为已使用，避免被后续节点捕获
+                    usedComments.add(comment)
+                    continue
+                }
+
                 if (comment.type === "CommentLine") {
                     leadingComments.push(`//${comment.value}`)
                 } else if (comment.type === "CommentBlock") {
@@ -67,8 +87,15 @@ function parseImportNode(
                     start = commentStart
                 }
 
+                lastCommentEndLine = commentEndLine
+
                 usedComments.add(comment)
             }
+        }
+
+        // 计算最后一个前导注释和 import 语句之间的空行数
+        if (leadingComments.length > 0 && lastCommentEndLine > 0) {
+            emptyLinesAfterComments = nodeStartLine - lastCommentEndLine - 1
         }
     }
 
@@ -116,6 +143,7 @@ function parseImportNode(
             importContents,
             leadingComments: leadingComments.length > 0 ? leadingComments : undefined,
             trailingComments: trailingComments.length > 0 ? trailingComments : undefined,
+            emptyLinesAfterComments: emptyLinesAfterComments > 0 ? emptyLinesAfterComments : undefined,
             start,
             end,
         }
@@ -126,10 +154,11 @@ function parseImportNode(
         return {
             path: source,
             isExport: true,
-            isSideEffect: false,
+            isSideEffect: true, // export * from 应该被视为副作用导出
             importContents: [],
             leadingComments: leadingComments.length > 0 ? leadingComments : undefined,
             trailingComments: trailingComments.length > 0 ? trailingComments : undefined,
+            emptyLinesAfterComments: emptyLinesAfterComments > 0 ? emptyLinesAfterComments : undefined,
             start,
             end,
         }
@@ -146,6 +175,7 @@ function parseImportNode(
         importContents,
         leadingComments: leadingComments.length > 0 ? leadingComments : undefined,
         trailingComments: trailingComments.length > 0 ? trailingComments : undefined,
+        emptyLinesAfterComments: emptyLinesAfterComments > 0 ? emptyLinesAfterComments : undefined,
         start,
         end,
     }
