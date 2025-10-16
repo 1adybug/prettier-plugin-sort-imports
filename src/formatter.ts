@@ -1,13 +1,18 @@
 import { Group, ImportStatement, PluginConfig } from "./types" /** 格式化导入语句 */
 
 export function formatImportStatement(statement: ImportStatement): string {
-    const { path, isExport, isSideEffect, importContents, leadingComments, trailingComments, removedTrailingComments } = statement
+    const { path, isExport, isSideEffect, importContents, leadingComments, trailingComments, removedTrailingComments, emptyLinesAfterComments } = statement
 
     const lines: string[] = []
 
     // 添加前导注释
     if (leadingComments && leadingComments.length > 0) {
         lines.push(...leadingComments)
+        // 添加注释后的空行
+        const emptyLines = emptyLinesAfterComments ?? 0
+        for (let i = 0; i < emptyLines; i++) {
+            lines.push("")
+        }
     }
 
     // 副作用导入

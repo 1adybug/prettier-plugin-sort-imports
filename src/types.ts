@@ -30,6 +30,8 @@ export interface ImportStatement {
     trailingComments?: string[]
     /** 被移除的导入语句的行尾注释（合并时使用） */
     removedTrailingComments?: string[]
+    /** 前导注释后的空行数（用于保留注释和 import 之间的空行） */
+    emptyLinesAfterComments?: number
     /** 在源代码中的起始位置（包括注释） */
     start?: number
     /** 在源代码中的结束位置 */

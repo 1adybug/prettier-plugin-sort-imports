@@ -1,6 +1,7 @@
 import { parse } from "@babel/parser"
 import traverse, { NodePath } from "@babel/traverse"
 import { ExportNamedDeclaration, Identifier, JSXIdentifier, TSTypeReference } from "@babel/types"
+
 import { ImportContent, ImportStatement } from "./types" /** 分析代码中使用的标识符 */
 
 export function analyzeUsedIdentifiers(code: string): Set<string> {
