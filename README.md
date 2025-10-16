@@ -13,6 +13,7 @@ A powerful Prettier plugin for intelligently grouping and sorting import stateme
 - ✅ **Side Effect Handling**: Configurable sorting behavior for side effect imports
 - ✅ **Unused Import Removal**: Optional automatic removal of unused imports
 - ✅ **Factory Function Pattern**: Support for custom functions in configuration files
+- ✅ **Tailwind CSS Integration**: Compatible with `prettier-plugin-tailwindcss`
 
 ## Quick Start
 
@@ -288,6 +289,7 @@ export default {
 ```
 
 **Benefits of this approach**:
+
 - ✅ **Reusable**: Share the same configuration across multiple projects
 - ✅ **Version Control**: Track your import sorting rules in git
 - ✅ **Maintainable**: Keep complex logic separate from prettier config
@@ -555,6 +557,30 @@ export default {
 ```
 
 This maintains configuration flexibility while not violating Prettier's configuration system limitations.
+
+## Integration with Other Plugins
+
+### Tailwind CSS
+
+This plugin works seamlessly with `prettier-plugin-tailwindcss`. For detailed setup instructions, see [TAILWINDCSS_INTEGRATION.md](./TAILWINDCSS_INTEGRATION.md).
+
+**Quick Setup:**
+
+```javascript
+// prettier.config.mjs
+export default {
+    plugins: [
+        "@1adybug/prettier-plugin-sort-imports",
+        "prettier-plugin-tailwindcss", // Must come last
+    ],
+    tailwindFunctions: ["clsx", "cn", "cva", "tw"],
+}
+```
+
+This will:
+
+- ✅ Sort and merge your imports
+- ✅ Sort your Tailwind CSS classes according to the recommended order
 
 ## Notes
 

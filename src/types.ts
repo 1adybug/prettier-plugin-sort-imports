@@ -53,22 +53,13 @@ export type GetGroupFunction = (importStatement: ImportStatement) => string
 export type SortGroupFunction = (a: Group, b: Group) => number
 
 /** 导入语句排序函数 */
-export type SortImportStatementFunction = (
-    a: ImportStatement,
-    b: ImportStatement,
-) => number
+export type SortImportStatementFunction = (a: ImportStatement, b: ImportStatement) => number
 
 /** 导入内容排序函数 */
-export type SortImportContentFunction = (
-    a: ImportContent,
-    b: ImportContent,
-) => number
+export type SortImportContentFunction = (a: ImportContent, b: ImportContent) => number
 
 /** 分隔符函数 */
-export type SeparatorFunction = (
-    group: Group,
-    index: number,
-) => string | undefined
+export type SeparatorFunction = (group: Group, index: number) => string | undefined
 
 /** 插件配置 */
 export interface PluginConfig {

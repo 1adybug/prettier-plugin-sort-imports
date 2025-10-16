@@ -12,11 +12,7 @@ export * from "./types"
 const require = createRequire(import.meta.url)
 
 /** 预处理导入语句 */
-function preprocessImports(
-    text: string,
-    options: ParserOptions & Partial<PluginConfig>,
-    config: PluginConfig = {},
-): string {
+function preprocessImports(text: string, options: ParserOptions & Partial<PluginConfig>, config: PluginConfig = {}): string {
     try {
         // 解析导入语句
         const imports = parseImports(text)
@@ -30,22 +26,11 @@ function preprocessImports(
         const finalConfig: PluginConfig = {
             getGroup: config.getGroup ?? optionsConfig.getGroup,
             sortGroup: config.sortGroup ?? optionsConfig.sortGroup,
-            sortImportStatement:
-                config.sortImportStatement ?? optionsConfig.sortImportStatement,
-            sortImportContent:
-                config.sortImportContent ?? optionsConfig.sortImportContent,
-            separator:
-                config.separator ??
-                optionsConfig.importSortSeparator ??
-                optionsConfig.separator,
-            sortSideEffect:
-                config.sortSideEffect ??
-                optionsConfig.importSortSideEffect ??
-                false,
-            removeUnusedImports:
-                config.removeUnusedImports ??
-                optionsConfig.importSortRemoveUnused ??
-                false,
+            sortImportStatement: config.sortImportStatement ?? optionsConfig.sortImportStatement,
+            sortImportContent: config.sortImportContent ?? optionsConfig.sortImportContent,
+            separator: config.separator ?? optionsConfig.importSortSeparator ?? optionsConfig.separator,
+            sortSideEffect: config.sortSideEffect ?? optionsConfig.importSortSideEffect ?? false,
+            removeUnusedImports: config.removeUnusedImports ?? optionsConfig.importSortRemoveUnused ?? false,
         }
 
         // 移除未使用的导入（如果配置了）
@@ -54,10 +39,7 @@ function preprocessImports(
             // 只分析导入语句之后的代码部分
             const lastImport = imports[imports.length - 1]
             const codeAfterImports = text.slice(lastImport.end ?? 0)
-            processedImports = removeUnusedImportsFromStatements(
-                imports,
-                codeAfterImports,
-            )
+            processedImports = removeUnusedImportsFromStatements(imports, codeAfterImports)
         }
 
         // 排序导入语句
@@ -104,9 +86,15 @@ function preprocessImports(
 }
 
 // 动态加载 prettier 的解析器
-const { parsers: { babel } } = require("prettier/parser-babel")
-const { parsers: { typescript } } = require("prettier/parser-typescript")
-const { parsers: { "babel-ts": babelTs } } = require("prettier/parser-babel")
+const {
+    parsers: { babel },
+} = require("prettier/parser-babel")
+const {
+    parsers: { typescript },
+} = require("prettier/parser-typescript")
+const {
+    parsers: { "babel-ts": babelTs },
+} = require("prettier/parser-babel")
 
 /** 创建合并后的 preprocess 函数 */
 function createCombinedPreprocess(parserName: string, config: PluginConfig) {
@@ -122,11 +110,12 @@ function createCombinedPreprocess(parserName: string, config: PluginConfig) {
         const mergedOptions = { ...options, ...prettierOptions }
 
         // 收集所有插件的 preprocess 函数
-        const preprocessFunctions: Array<
-            (text: string, options: any) => string
-        > = []
+        const preprocessFunctions: Array<(text: string, options: any) => string> = []
 
-        // 按传入顺序获取其他插件的 preprocess
+        // 我们的 import 排序作为第一步（先排序导入）
+        preprocessFunctions.push((text: string, options: any) => preprocessImports(text, options, config))
+
+        // 然后按传入顺序获取其他插件的 preprocess（如 Tailwind）
         for (const plugin of otherPlugins) {
             const parser = plugin?.parsers?.[parserName]
 
@@ -134,11 +123,6 @@ function createCombinedPreprocess(parserName: string, config: PluginConfig) {
                 preprocessFunctions.push(parser.preprocess)
             }
         }
-
-        // 我们的 import 排序作为最后一步
-        preprocessFunctions.push((text: string, options: any) =>
-            preprocessImports(text, options, config),
-        )
 
         // 执行链式调用
         let processedText = text
@@ -148,10 +132,7 @@ function createCombinedPreprocess(parserName: string, config: PluginConfig) {
                 // 使用合并后的配置调用其他插件
                 processedText = preprocess(processedText, mergedOptions)
             } catch (error) {
-                console.warn(
-                    "Plugin preprocess failed:",
-                    error instanceof Error ? error.message : String(error),
-                )
+                console.warn("Plugin preprocess failed:", error instanceof Error ? error.message : String(error))
             }
         }
 
@@ -192,23 +173,52 @@ function createPluginInstance(config: PluginConfig = {}): Plugin {
         }
     }
 
-    return {
-        parsers: {
-            babel: {
-                ...babel,
-                preprocess: createCombinedPreprocess("babel", config),
-            },
-            typescript: {
-                ...typescript,
-                preprocess: createCombinedPreprocess("typescript", config),
-            },
-            "babel-ts": {
-                ...babelTs,
-                preprocess: createCombinedPreprocess("babel-ts", config),
-            },
-        },
+    // 合并其他插件的 printers
+    const mergedPrinters: Record<string, any> = {}
+    for (const plugin of otherPlugins) {
+        if (plugin?.printers) {
+            Object.assign(mergedPrinters, plugin.printers)
+        }
+    }
+
+    // 合并其他插件的 parsers（合并所有 parser 属性，不只是 preprocess）
+    const mergedParsers: Record<string, any> = {}
+
+    // 对每个 parser，合并所有插件的定义
+    const parserNames = ["babel", "typescript", "babel-ts"]
+    const baseParsers: Record<string, any> = { babel, typescript, "babel-ts": babelTs }
+
+    for (const parserName of parserNames) {
+        const baseParser = baseParsers[parserName]
+        let merged = { ...baseParser }
+
+        // 合并其他插件对该 parser 的修改
+        for (const plugin of otherPlugins) {
+            const otherParser = plugin?.parsers?.[parserName]
+            if (otherParser) {
+                // 保留其他插件的所有属性（parse, astFormat, print, etc.）
+                // 但 preprocess 由我们统一管理
+                const { preprocess, ...otherAttrs } = otherParser
+                merged = { ...merged, ...otherAttrs }
+            }
+        }
+
+        // 最后设置我们的 preprocess（它会链式调用所有插件的 preprocess）
+        merged.preprocess = createCombinedPreprocess(parserName, config)
+        mergedParsers[parserName] = merged
+    }
+
+    const result: Plugin = {
+        parsers: mergedParsers,
         options: mergedOptions,
     }
+
+    // 只有在有 printers 时才添加
+    if (Object.keys(mergedPrinters).length > 0) {
+        result.printers = mergedPrinters
+    }
+
+    return result
 }
 
 /** 创建自定义配置的插件（工厂函数） */

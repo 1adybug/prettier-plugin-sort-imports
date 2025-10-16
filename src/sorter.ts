@@ -1,9 +1,4 @@
-import {
-    Group,
-    ImportContent,
-    ImportStatement,
-    PluginConfig,
-} from "./types" /** 导入类型 */
+import { Group, ImportContent, ImportStatement, PluginConfig } from "./types"
 
 type ImportType = "module" | "alias" | "relative"
 
@@ -25,11 +20,7 @@ function getImportType(path: string): ImportType {
     }
 
     // 常见的路径别名：@/, ~/, #/ 等
-    if (
-        path.startsWith("@/") ||
-        path.startsWith("~/") ||
-        path.startsWith("#/")
-    ) {
+    if (path.startsWith("@/") || path.startsWith("~/") || path.startsWith("#/")) {
         return "alias"
     }
 
@@ -55,10 +46,7 @@ function getImportTypePriority(type: ImportType): number {
 }
 
 /** 默认的导入语句排序函数，优先按照导入类型（模块 > 绝对路径 > 相对路径），然后按照 path 的字母顺序排序 */
-function defaultSortImportStatement(
-    a: ImportStatement,
-    b: ImportStatement,
-): number {
+function defaultSortImportStatement(a: ImportStatement, b: ImportStatement): number {
     const aType = getImportType(a.path)
     const bType = getImportType(b.path)
 
@@ -100,11 +88,7 @@ const DEFAULT_CONFIG = {
 }
 
 /** 合并后的配置 */
-export interface MergedConfig
-    extends Omit<
-        Required<PluginConfig>,
-        "separator" | "removeUnusedImports" | "otherPlugins" | "prettierOptions"
-    > {
+export interface MergedConfig extends Omit<Required<PluginConfig>, "separator" | "removeUnusedImports" | "otherPlugins" | "prettierOptions"> {
     separator: PluginConfig["separator"]
     removeUnusedImports: boolean
 }
@@ -114,23 +98,16 @@ function mergeConfig(userConfig: PluginConfig): MergedConfig {
     return {
         getGroup: userConfig.getGroup ?? DEFAULT_CONFIG.getGroup,
         sortGroup: userConfig.sortGroup ?? DEFAULT_CONFIG.sortGroup,
-        sortImportStatement:
-            userConfig.sortImportStatement ??
-            DEFAULT_CONFIG.sortImportStatement,
-        sortImportContent:
-            userConfig.sortImportContent ?? DEFAULT_CONFIG.sortImportContent,
+        sortImportStatement: userConfig.sortImportStatement ?? DEFAULT_CONFIG.sortImportStatement,
+        sortImportContent: userConfig.sortImportContent ?? DEFAULT_CONFIG.sortImportContent,
         separator: userConfig.separator,
-        sortSideEffect:
-            userConfig.sortSideEffect ?? DEFAULT_CONFIG.sortSideEffect,
+        sortSideEffect: userConfig.sortSideEffect ?? DEFAULT_CONFIG.sortSideEffect,
         removeUnusedImports: userConfig.removeUnusedImports ?? false,
     }
 }
 
 /** 对导入语句进行排序 */
-export function sortImports(
-    imports: ImportStatement[],
-    userConfig: PluginConfig,
-): ImportStatement[] {
+export function sortImports(imports: ImportStatement[], userConfig: PluginConfig): ImportStatement[] {
     const config = mergeConfig(userConfig)
 
     // 如果不对副作用导入进行排序，需要特殊处理
@@ -145,15 +122,9 @@ export function sortImports(
     // 将分组中的导入语句展平
     const result: ImportStatement[] = []
     for (const group of sortedGroups) {
-        const sortedStatements = sortImportStatements(
-            group.importStatements,
-            config,
-        )
+        const sortedStatements = sortImportStatements(group.importStatements, config)
         for (const statement of sortedStatements) {
-            const sortedContents = sortImportContents(
-                statement.importContents,
-                config,
-            )
+            const sortedContents = sortImportContents(statement.importContents, config)
             result.push({
                 ...statement,
                 importContents: sortedContents,
@@ -165,10 +136,7 @@ export function sortImports(
 }
 
 /** 对导入语句进行分组和排序（副作用导入作为分隔符） */
-function sortImportsWithSideEffectSeparators(
-    imports: ImportStatement[],
-    config: MergedConfig,
-): ImportStatement[] {
+function sortImportsWithSideEffectSeparators(imports: ImportStatement[], config: MergedConfig): ImportStatement[] {
     const result: ImportStatement[] = []
     const chunks: ImportStatement[][] = []
     let currentChunk: ImportStatement[] = []
@@ -203,15 +171,9 @@ function sortImportsWithSideEffectSeparators(
         const sortedGroups = sortGroups(groups, config)
 
         for (const group of sortedGroups) {
-            const sortedStatements = sortImportStatements(
-                group.importStatements,
-                config,
-            )
+            const sortedStatements = sortImportStatements(group.importStatements, config)
             for (const statement of sortedStatements) {
-                const sortedContents = sortImportContents(
-                    statement.importContents,
-                    config,
-                )
+                const sortedContents = sortImportContents(statement.importContents, config)
                 result.push({
                     ...statement,
                     importContents: sortedContents,
@@ -224,10 +186,7 @@ function sortImportsWithSideEffectSeparators(
 }
 
 /** 对导入语句进行分组 */
-export function groupImports(
-    imports: ImportStatement[],
-    userConfig: PluginConfig,
-): Group[] {
+export function groupImports(imports: ImportStatement[], userConfig: PluginConfig): Group[] {
     const config = mergeConfig(userConfig)
     const groupMap = new Map<string, ImportStatement[]>()
 
@@ -240,9 +199,7 @@ export function groupImports(
 
     const groups: Group[] = []
     for (const [name, statements] of Array.from(groupMap.entries())) {
-        const isSideEffect = statements.every(
-            (s: ImportStatement) => s.isSideEffect,
-        )
+        const isSideEffect = statements.every((s: ImportStatement) => s.isSideEffect)
         groups.push({
             name,
             isSideEffect,
@@ -260,19 +217,13 @@ export function sortGroups(groups: Group[], userConfig: PluginConfig): Group[] {
 }
 
 /** 对导入语句进行排序 */
-export function sortImportStatements(
-    statements: ImportStatement[],
-    userConfig: PluginConfig,
-): ImportStatement[] {
+export function sortImportStatements(statements: ImportStatement[], userConfig: PluginConfig): ImportStatement[] {
     const config = mergeConfig(userConfig)
     return [...statements].sort(config.sortImportStatement)
 }
 
 /** 对导入内容进行排序 */
-export function sortImportContents(
-    contents: ImportContent[],
-    userConfig: PluginConfig,
-): ImportContent[] {
+export function sortImportContents(contents: ImportContent[], userConfig: PluginConfig): ImportContent[] {
     const config = mergeConfig(userConfig)
 
     // 如果用户提供了自定义排序函数，完全使用用户的逻辑
@@ -283,15 +234,9 @@ export function sortImportContents(
     // 使用默认排序：默认导入和命名空间导入在最前面，type 在前
     const defaultImport = contents.filter(c => c.name === "default")
     const namespaceImport = contents.filter(c => c.name === "*")
-    const namedImports = contents.filter(
-        c => c.name !== "default" && c.name !== "*",
-    )
+    const namedImports = contents.filter(c => c.name !== "default" && c.name !== "*")
 
-    return [
-        ...defaultImport,
-        ...namespaceImport,
-        ...namedImports.sort(config.sortImportContent),
-    ]
+    return [...defaultImport, ...namespaceImport, ...namedImports.sort(config.sortImportContent)]
 }
 
 /** 合并来自同一模块的导入语句 */
@@ -309,9 +254,7 @@ export function mergeImports(imports: ImportStatement[]): ImportStatement[] {
         }
 
         // 如果包含命名空间导入，不合并
-        const hasNamespaceImport = statement.importContents.some(
-            c => c.name === "*",
-        )
+        const hasNamespaceImport = statement.importContents.some(c => c.name === "*")
         if (hasNamespaceImport) {
             const key = `${statement.path}|||${statement.isExport}|||namespace|||${statement.start}`
             mergedMap.set(key, statement)
@@ -329,25 +272,17 @@ export function mergeImports(imports: ImportStatement[]): ImportStatement[] {
 
             for (const content of statement.importContents) {
                 // 检查是否已经存在相同的导入
-                const existingContent = mergedContents.find(
-                    c => c.name === content.name && c.alias === content.alias,
-                )
+                const existingContent = mergedContents.find(c => c.name === content.name && c.alias === content.alias)
 
                 if (!existingContent) {
                     mergedContents.push(content)
                 } else {
                     // 如果已存在，合并注释
                     if (content.leadingComments) {
-                        existingContent.leadingComments = [
-                            ...(existingContent.leadingComments ?? []),
-                            ...content.leadingComments,
-                        ]
+                        existingContent.leadingComments = [...(existingContent.leadingComments ?? []), ...content.leadingComments]
                     }
                     if (content.trailingComments) {
-                        existingContent.trailingComments = [
-                            ...(existingContent.trailingComments ?? []),
-                            ...content.trailingComments,
-                        ]
+                        existingContent.trailingComments = [...(existingContent.trailingComments ?? []), ...content.trailingComments]
                     }
                 }
             }
@@ -358,35 +293,20 @@ export function mergeImports(imports: ImportStatement[]): ImportStatement[] {
             // 2. 行尾注释：只保留第一个导入的行尾注释
             // 3. 被移除导入的行尾注释：存储到 removedTrailingComments，稍后输出为独立的注释行
 
-            const mergedLeadingComments = [
-                ...(existing.leadingComments ?? []),
-                ...(statement.leadingComments ?? []),
-            ]
+            const mergedLeadingComments = [...(existing.leadingComments ?? []), ...(statement.leadingComments ?? [])]
 
             // 只保留第一个导入的行尾注释
             const mergedTrailingComments = existing.trailingComments ?? []
 
             // 收集被移除导入的行尾注释
-            const removedTrailingComments = [
-                ...(existing.removedTrailingComments ?? []),
-                ...(statement.trailingComments ?? []),
-            ]
+            const removedTrailingComments = [...(existing.removedTrailingComments ?? []), ...(statement.trailingComments ?? [])]
 
             mergedMap.set(key, {
                 ...existing,
                 importContents: mergedContents,
-                leadingComments:
-                    mergedLeadingComments.length > 0
-                        ? mergedLeadingComments
-                        : undefined,
-                trailingComments:
-                    mergedTrailingComments.length > 0
-                        ? mergedTrailingComments
-                        : undefined,
-                removedTrailingComments:
-                    removedTrailingComments.length > 0
-                        ? removedTrailingComments
-                        : undefined,
+                leadingComments: mergedLeadingComments.length > 0 ? mergedLeadingComments : undefined,
+                trailingComments: mergedTrailingComments.length > 0 ? mergedTrailingComments : undefined,
+                removedTrailingComments: removedTrailingComments.length > 0 ? removedTrailingComments : undefined,
             })
         }
     }

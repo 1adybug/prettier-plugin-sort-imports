@@ -1,10 +1,5 @@
 import { parse } from "@babel/parser"
-import {
-    Comment,
-    ExportAllDeclaration,
-    ExportNamedDeclaration,
-    ImportDeclaration,
-} from "@babel/types"
+import { Comment, ExportAllDeclaration, ExportNamedDeclaration, ImportDeclaration } from "@babel/types"
 import { ImportContent, ImportStatement } from "./types"
 
 /** 解析导入语句 */
@@ -25,16 +20,8 @@ export function parseImports(code: string): ImportStatement[] {
 
     // 只处理文件开头的连续导入/导出语句块
     for (const node of body) {
-        if (
-            node.type === "ImportDeclaration" ||
-            (node.type === "ExportNamedDeclaration" && node.source) ||
-            node.type === "ExportAllDeclaration"
-        ) {
-            const statement = parseImportNode(
-                node,
-                ast.comments ?? [],
-                usedComments,
-            )
+        if (node.type === "ImportDeclaration" || (node.type === "ExportNamedDeclaration" && node.source) || node.type === "ExportAllDeclaration") {
+            const statement = parseImportNode(node, ast.comments ?? [], usedComments)
             importStatements.push(statement)
         } else {
             // 遇到非导入/导出语句，停止处理
@@ -93,10 +80,7 @@ function parseImportNode(
                 // 检查注释是否与节点在同一行
                 const commentLoc = comment.loc
                 const nodeLoc = node.loc
-                const isSameLine =
-                    commentLoc &&
-                    nodeLoc &&
-                    commentLoc.start.line === nodeLoc.end.line
+                const isSameLine = commentLoc && nodeLoc && commentLoc.start.line === nodeLoc.end.line
 
                 if (isSameLine) {
                     if (comment.type === "CommentLine") {
@@ -130,10 +114,8 @@ function parseImportNode(
             isExport: false,
             isSideEffect,
             importContents,
-            leadingComments:
-                leadingComments.length > 0 ? leadingComments : undefined,
-            trailingComments:
-                trailingComments.length > 0 ? trailingComments : undefined,
+            leadingComments: leadingComments.length > 0 ? leadingComments : undefined,
+            trailingComments: trailingComments.length > 0 ? trailingComments : undefined,
             start,
             end,
         }
@@ -146,10 +128,8 @@ function parseImportNode(
             isExport: true,
             isSideEffect: false,
             importContents: [],
-            leadingComments:
-                leadingComments.length > 0 ? leadingComments : undefined,
-            trailingComments:
-                trailingComments.length > 0 ? trailingComments : undefined,
+            leadingComments: leadingComments.length > 0 ? leadingComments : undefined,
+            trailingComments: trailingComments.length > 0 ? trailingComments : undefined,
             start,
             end,
         }
@@ -164,20 +144,15 @@ function parseImportNode(
         isExport: true,
         isSideEffect: false,
         importContents,
-        leadingComments:
-            leadingComments.length > 0 ? leadingComments : undefined,
-        trailingComments:
-            trailingComments.length > 0 ? trailingComments : undefined,
+        leadingComments: leadingComments.length > 0 ? leadingComments : undefined,
+        trailingComments: trailingComments.length > 0 ? trailingComments : undefined,
         start,
         end,
     }
 }
 
 /** 解析导入说明符 */
-function parseImportSpecifiers(
-    node: ImportDeclaration,
-    isTypeOnlyImport: boolean = false,
-): ImportContent[] {
+function parseImportSpecifiers(node: ImportDeclaration, isTypeOnlyImport: boolean = false): ImportContent[] {
     const contents: ImportContent[] = []
 
     for (const specifier of node.specifiers) {
@@ -213,10 +188,8 @@ function parseImportSpecifiers(
                 name: "default",
                 alias: specifier.local.name,
                 type: isTypeOnlyImport ? "type" : "variable",
-                leadingComments:
-                    leadingComments.length > 0 ? leadingComments : undefined,
-                trailingComments:
-                    trailingComments.length > 0 ? trailingComments : undefined,
+                leadingComments: leadingComments.length > 0 ? leadingComments : undefined,
+                trailingComments: trailingComments.length > 0 ? trailingComments : undefined,
             })
         } else if (specifier.type === "ImportNamespaceSpecifier") {
             // 命名空间导入
@@ -224,29 +197,21 @@ function parseImportSpecifiers(
                 name: "*",
                 alias: specifier.local.name,
                 type: isTypeOnlyImport ? "type" : "variable",
-                leadingComments:
-                    leadingComments.length > 0 ? leadingComments : undefined,
-                trailingComments:
-                    trailingComments.length > 0 ? trailingComments : undefined,
+                leadingComments: leadingComments.length > 0 ? leadingComments : undefined,
+                trailingComments: trailingComments.length > 0 ? trailingComments : undefined,
             })
         } else if (specifier.type === "ImportSpecifier") {
             // 命名导入
-            const importedName =
-                specifier.imported.type === "Identifier"
-                    ? specifier.imported.name
-                    : (specifier.imported as any).value
+            const importedName = specifier.imported.type === "Identifier" ? specifier.imported.name : (specifier.imported as any).value
             const localName = specifier.local.name
-            const isTypeImport =
-                isTypeOnlyImport || specifier.importKind === "type"
+            const isTypeImport = isTypeOnlyImport || specifier.importKind === "type"
 
             contents.push({
                 name: importedName,
                 alias: importedName !== localName ? localName : undefined,
                 type: isTypeImport ? "type" : "variable",
-                leadingComments:
-                    leadingComments.length > 0 ? leadingComments : undefined,
-                trailingComments:
-                    trailingComments.length > 0 ? trailingComments : undefined,
+                leadingComments: leadingComments.length > 0 ? leadingComments : undefined,
+                trailingComments: trailingComments.length > 0 ? trailingComments : undefined,
             })
         }
     }
@@ -255,10 +220,7 @@ function parseImportSpecifiers(
 }
 
 /** 解析导出说明符 */
-function parseExportSpecifiers(
-    node: ExportNamedDeclaration,
-    isTypeOnlyExport: boolean = false,
-): ImportContent[] {
+function parseExportSpecifiers(node: ExportNamedDeclaration, isTypeOnlyExport: boolean = false): ImportContent[] {
     const contents: ImportContent[] = []
 
     if (!node.specifiers) {
@@ -293,25 +255,16 @@ function parseExportSpecifiers(
                 }
             }
 
-            const localName =
-                specifier.local.type === "Identifier"
-                    ? specifier.local.name
-                    : (specifier.local as any).value
-            const exportedName =
-                specifier.exported.type === "Identifier"
-                    ? specifier.exported.name
-                    : (specifier.exported as any).value
-            const isTypeExport =
-                isTypeOnlyExport || specifier.exportKind === "type"
+            const localName = specifier.local.type === "Identifier" ? specifier.local.name : (specifier.local as any).value
+            const exportedName = specifier.exported.type === "Identifier" ? specifier.exported.name : (specifier.exported as any).value
+            const isTypeExport = isTypeOnlyExport || specifier.exportKind === "type"
 
             contents.push({
                 name: localName,
                 alias: localName !== exportedName ? exportedName : undefined,
                 type: isTypeExport ? "type" : "variable",
-                leadingComments:
-                    leadingComments.length > 0 ? leadingComments : undefined,
-                trailingComments:
-                    trailingComments.length > 0 ? trailingComments : undefined,
+                leadingComments: leadingComments.length > 0 ? leadingComments : undefined,
+                trailingComments: trailingComments.length > 0 ? trailingComments : undefined,
             })
         }
     }
