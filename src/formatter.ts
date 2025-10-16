@@ -1,19 +1,7 @@
-import {
-    Group,
-    ImportStatement,
-    PluginConfig,
-} from "./types" /** 格式化导入语句 */
+import { Group, ImportStatement, PluginConfig } from "./types" /** 格式化导入语句 */
 
 export function formatImportStatement(statement: ImportStatement): string {
-    const {
-        path,
-        isExport,
-        isSideEffect,
-        importContents,
-        leadingComments,
-        trailingComments,
-        removedTrailingComments,
-    } = statement
+    const { path, isExport, isSideEffect, importContents, leadingComments, trailingComments, removedTrailingComments } = statement
 
     const lines: string[] = []
 
@@ -45,9 +33,7 @@ export function formatImportStatement(statement: ImportStatement): string {
         content =>
             content.name !== "default" &&
             content.name !== "*" &&
-            ((content.leadingComments && content.leadingComments.length > 0) ||
-                (content.trailingComments &&
-                    content.trailingComments.length > 0)),
+            ((content.leadingComments && content.leadingComments.length > 0) || (content.trailingComments && content.trailingComments.length > 0)),
     )
 
     // 构建导入内容（importContents 已经排序好了，直接按顺序处理）
@@ -89,10 +75,7 @@ export function formatImportStatement(statement: ImportStatement): string {
             // 添加导入项本身
             let itemLine = importItem
             // 添加行尾注释
-            if (
-                content.trailingComments &&
-                content.trailingComments.length > 0
-            ) {
+            if (content.trailingComments && content.trailingComments.length > 0) {
                 itemLine += ` ${content.trailingComments.join(" ")}`
             }
             itemLines.push(itemLine)
@@ -104,21 +87,16 @@ export function formatImportStatement(statement: ImportStatement): string {
     }
 
     // 检查导入类型组合
-    const namedImports = importContents.filter(
-        c => c.name !== "default" && c.name !== "*",
-    )
+    const namedImports = importContents.filter(c => c.name !== "default" && c.name !== "*")
     const allNamedImportsAreTypes = namedImports.every(c => c.type === "type")
-    const hasDefaultOrNamespace = importContents.some(
-        c => c.name === "default" || c.name === "*",
-    )
+    const hasDefaultOrNamespace = importContents.some(c => c.name === "default" || c.name === "*")
 
     // 添加命名导入部分
     if (hasNamedImportComments && namedPartsWithComments.length > 0) {
         // 多行格式
         const keyword = isExport ? "export" : "import"
         // 只有在所有命名导入都是类型且没有默认导入/命名空间导入时才使用 type 关键字
-        const typeKeyword =
-            allNamedImportsAreTypes && !hasDefaultOrNamespace ? "type " : ""
+        const typeKeyword = allNamedImportsAreTypes && !hasDefaultOrNamespace ? "type " : ""
         const defaultPart = parts.length > 0 ? parts.join(", ") + ", " : ""
         const importStart = `${keyword} ${typeKeyword}${defaultPart}{`
         const importEnd = `} from "${path}"`
@@ -133,9 +111,7 @@ export function formatImportStatement(statement: ImportStatement): string {
             if (allNamedImportsAreTypes && !hasDefaultOrNamespace) {
                 // 使用 import type { A, B } 格式
                 // 移除每个导入项前面的 type 关键字
-                const cleanedParts = namedParts.map(part =>
-                    part.replace(/^type /, ""),
-                )
+                const cleanedParts = namedParts.map(part => part.replace(/^type /, ""))
                 parts.push(`{ ${cleanedParts.join(", ")} }`)
             } else {
                 // 其他情况保持每个导入项前面的 type 关键字
@@ -146,8 +122,7 @@ export function formatImportStatement(statement: ImportStatement): string {
         // 构建完整的导入语句
         const importClause = parts.join(", ")
         // 只有在所有命名导入都是类型且没有默认导入/命名空间导入时才使用 type 关键字
-        const typeKeyword =
-            allNamedImportsAreTypes && !hasDefaultOrNamespace ? "type " : ""
+        const typeKeyword = allNamedImportsAreTypes && !hasDefaultOrNamespace ? "type " : ""
         let importLine = ""
         if (isExport) {
             importLine = `export ${typeKeyword}${importClause} from "${path}"`
