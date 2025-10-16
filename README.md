@@ -65,6 +65,7 @@ export default {
             // Specify group order
             sortGroup: (a, b) => {
                 const order = ["react", "external", "local"]
+
                 return order.indexOf(a.name) - order.indexOf(b.name)
             },
             // Add blank lines between groups
@@ -187,6 +188,7 @@ export default {
             },
             sortGroup: (a, b) => {
                 const order = ["react", "external", "local"]
+
                 return order.indexOf(a.name) - order.indexOf(b.name)
             },
             sortImportStatement: (a, b) => {
@@ -252,6 +254,7 @@ export default createPlugin({
     // Define group order
     sortGroup: (a, b) => {
         const order = ["react", "external", "ui", "utils", "internal", "relative"]
+
         return order.indexOf(a.name) - order.indexOf(b.name)
     },
 
@@ -418,6 +421,7 @@ separator: ""
 separator: (group, index) => {
     // No separator for the first group
     if (index === 0) return undefined
+
     // Add blank lines for other groups
     return ""
 }

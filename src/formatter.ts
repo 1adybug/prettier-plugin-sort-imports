@@ -10,6 +10,7 @@ export function formatImportStatement(statement: ImportStatement): string {
         lines.push(...leadingComments)
         // 添加注释后的空行
         const emptyLines = emptyLinesAfterComments ?? 0
+
         for (let i = 0; i < emptyLines; i++) {
             lines.push("")
         }
@@ -18,6 +19,7 @@ export function formatImportStatement(statement: ImportStatement): string {
     // 副作用导入
     if (isSideEffect) {
         let importLine = ""
+
         if (isExport) {
             importLine = `export * from "${path}"`
         } else {
@@ -43,7 +45,9 @@ export function formatImportStatement(statement: ImportStatement): string {
 
     // 构建导入内容（importContents 已经排序好了，直接按顺序处理）
     const parts: string[] = []
+
     const namedParts: string[] = []
+
     const namedPartsWithComments: string[] = []
 
     for (const content of importContents) {
@@ -62,6 +66,7 @@ export function formatImportStatement(statement: ImportStatement): string {
         // 命名导入
         const typePrefix = content.type === "type" ? "type " : ""
         let importItem = ""
+
         if (content.alias) {
             importItem = `${typePrefix}${content.name} as ${content.alias}`
         } else {
@@ -79,10 +84,12 @@ export function formatImportStatement(statement: ImportStatement): string {
 
             // 添加导入项本身
             let itemLine = importItem
+
             // 添加行尾注释
             if (content.trailingComments && content.trailingComments.length > 0) {
                 itemLine += ` ${content.trailingComments.join(" ")}`
             }
+
             itemLines.push(itemLine)
 
             namedPartsWithComments.push(itemLines.join("\n    "))
@@ -93,6 +100,7 @@ export function formatImportStatement(statement: ImportStatement): string {
 
     // 检查导入类型组合
     const namedImports = importContents.filter(c => c.name !== "default" && c.name !== "*")
+
     const allNamedImportsAreTypes = namedImports.every(c => c.type === "type")
     const hasDefaultOrNamespace = importContents.some(c => c.name === "default" || c.name === "*")
 
@@ -117,6 +125,7 @@ export function formatImportStatement(statement: ImportStatement): string {
                 // 使用 import type { A, B } 格式
                 // 移除每个导入项前面的 type 关键字
                 const cleanedParts = namedParts.map(part => part.replace(/^type /, ""))
+
                 parts.push(`{ ${cleanedParts.join(", ")} }`)
             } else {
                 // 其他情况保持每个导入项前面的 type 关键字
@@ -126,9 +135,11 @@ export function formatImportStatement(statement: ImportStatement): string {
 
         // 构建完整的导入语句
         const importClause = parts.join(", ")
+
         // 只有在所有命名导入都是类型且没有默认导入/命名空间导入时才使用 type 关键字
         const typeKeyword = allNamedImportsAreTypes && !hasDefaultOrNamespace ? "type " : ""
         let importLine = ""
+
         if (isExport) {
             importLine = `export ${typeKeyword}${importClause} from "${path}"`
         } else {
@@ -146,6 +157,7 @@ export function formatImportStatement(statement: ImportStatement): string {
     // 添加被移除导入的行尾注释（作为独立的注释行）
     if (removedTrailingComments && removedTrailingComments.length > 0) {
         lines.push("") // 添加空行
+
         lines.push(...removedTrailingComments)
     }
 
@@ -155,6 +167,7 @@ export function formatImportStatement(statement: ImportStatement): string {
 /** 格式化分组 */
 export function formatGroups(groups: Group[], config: PluginConfig): string {
     const lines: string[] = []
+
     const separator = config.separator
 
     for (let i = 0; i < groups.length; i++) {
@@ -173,6 +186,7 @@ export function formatGroups(groups: Group[], config: PluginConfig): string {
             if (separatorStr !== undefined) {
                 // 先添加一个空行，然后添加分隔符
                 lines.push("")
+
                 if (separatorStr !== "") {
                     lines.push(separatorStr)
                 }
