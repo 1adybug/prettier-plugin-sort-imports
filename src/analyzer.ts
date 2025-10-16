@@ -1,9 +1,14 @@
 import { parse } from "@babel/parser"
-import traverse, { NodePath } from "@babel/traverse"
+import traverseModule, { NodePath } from "@babel/traverse"
 import { ExportNamedDeclaration, Identifier, JSXIdentifier, TSTypeReference } from "@babel/types"
 
-import { ImportContent, ImportStatement } from "./types" /** 分析代码中使用的标识符 */
+import { ImportContent, ImportStatement } from "./types"
 
+// 处理 ESM/CommonJS 兼容性
+// @ts-ignore
+const traverse = typeof traverseModule === "function" ? traverseModule : traverseModule.default
+
+/** 分析代码中使用的标识符 */
 export function analyzeUsedIdentifiers(code: string): Set<string> {
     const usedIdentifiers = new Set<string>()
 
@@ -47,14 +52,17 @@ export function analyzeUsedIdentifiers(code: string): Set<string> {
             // 处理 TypeScript 类型引用
             TSTypeReference(path: NodePath<TSTypeReference>) {
                 const node = path.node
+
                 if (node.typeName.type === "Identifier") {
                     usedIdentifiers.add(node.typeName.name)
                 } else if (node.typeName.type === "TSQualifiedName") {
                     // 处理 A.B.C 这种类型引用，只添加最左边的标识符
                     let current: any = node.typeName
+
                     while (current.type === "TSQualifiedName") {
                         current = current.left
                     }
+
                     if (current.type === "Identifier") {
                         usedIdentifiers.add(current.name)
                     }
@@ -64,6 +72,7 @@ export function analyzeUsedIdentifiers(code: string): Set<string> {
             // 处理 export 语句中的标识符
             ExportNamedDeclaration(path: NodePath<ExportNamedDeclaration>) {
                 const node = path.node
+
                 // 如果是 export { a, b } 这种形式，需要收集使用的标识符
                 if (!node.source && node.specifiers) {
                     for (const specifier of node.specifiers) {

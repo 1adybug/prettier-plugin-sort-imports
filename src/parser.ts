@@ -14,6 +14,7 @@ export function parseImports(code: string): ImportStatement[] {
     })
 
     const importStatements: ImportStatement[] = []
+
     const { body } = ast.program
 
     // 跟踪已使用的注释，避免重复
@@ -21,6 +22,7 @@ export function parseImports(code: string): ImportStatement[] {
 
     // 只处理文件开头的连续导入/导出语句块
     let isFirstImport = true
+
     for (const node of body) {
         if (node.type === "ImportDeclaration" || (node.type === "ExportNamedDeclaration" && node.source) || node.type === "ExportAllDeclaration") {
             const statement = parseImportNode(node, ast.comments ?? [], usedComments, code, isFirstImport)
@@ -54,7 +56,9 @@ function parseImportNode(
 
     // 使用 Babel 自动附加的注释
     const leadingComments: string[] = []
+
     const trailingComments: string[] = []
+
     let start = nodeStart
     let emptyLinesAfterComments = 0
 
@@ -69,10 +73,12 @@ function parseImportNode(
                 // 如果是第一个 import 且注释和节点之间有空行，则该注释属于文件顶部
                 // 不应该作为 import 的前导注释
                 const emptyLinesBetween = nodeStartLine - commentEndLine - 1
+
                 if (isFirstImport && emptyLinesBetween >= 1) {
                     // 这是文件顶部注释，不添加为 leadingComments
                     // 但需要标记为已使用，避免被后续节点捕获
                     usedComments.add(comment)
+
                     continue
                 }
 
@@ -83,6 +89,7 @@ function parseImportNode(
                 }
 
                 const commentStart = comment.start ?? 0
+
                 if (commentStart < start) {
                     start = commentStart
                 }
@@ -117,6 +124,7 @@ function parseImportNode(
                     }
 
                     const commentEnd = comment.end ?? 0
+
                     if (commentEnd > nodeEnd) {
                         nodeEnd = commentEnd
                     }
@@ -188,6 +196,7 @@ function parseImportSpecifiers(node: ImportDeclaration, isTypeOnlyImport: boolea
     for (const specifier of node.specifiers) {
         // 解析 specifier 的注释
         const leadingComments: string[] = []
+
         const trailingComments: string[] = []
 
         // 处理前导注释
@@ -261,6 +270,7 @@ function parseExportSpecifiers(node: ExportNamedDeclaration, isTypeOnlyExport: b
         if (specifier.type === "ExportSpecifier") {
             // 解析 specifier 的注释
             const leadingComments: string[] = []
+
             const trailingComments: string[] = []
 
             // 处理前导注释

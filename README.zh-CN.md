@@ -64,6 +64,7 @@ export default {
             // 指定分组顺序
             sortGroup: (a, b) => {
                 const order = ["react", "external", "local"]
+
                 return order.indexOf(a.name) - order.indexOf(b.name)
             },
             // 在分组之间添加空行
@@ -245,6 +246,7 @@ export default createPlugin({
     // 定义分组顺序
     sortGroup: (a, b) => {
         const order = ["react", "external", "ui", "utils", "internal", "relative"]
+
         return order.indexOf(a.name) - order.indexOf(b.name)
     },
 
@@ -411,6 +413,7 @@ separator: ""
 separator: (group, index) => {
     // 第一个分组不添加分隔符
     if (index === 0) return undefined
+
     // 其他分组添加空行
     return ""
 }

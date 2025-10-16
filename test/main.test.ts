@@ -177,6 +177,7 @@ const Component = () => {
 
         // 验证 import 已排序
         expect(result).toContain('from "react"')
+
         expect(result).toContain('from "./components"')
 
         // 验证 Tailwind 类名已按推荐顺序排序
@@ -184,6 +185,7 @@ const Component = () => {
 
         // Tailwind 排序后，布局类（flex）通常在前面，然后是间距（m-2, p-4）
         const classNameMatch = result.match(/className="([^"]+)"/)
+
         if (classNameMatch) {
             const classes = classNameMatch[1]
             expect(classes).toBeTruthy()
@@ -200,6 +202,7 @@ const Component = () => {
             },
             sortGroup: (a, b) => {
                 const order = ["react", "external", "internal", "relative"]
+
                 return order.indexOf(a.name) - order.indexOf(b.name)
             },
             separator: "\n",
@@ -221,6 +224,7 @@ const App = () => {
 
         // 验证分组顺序
         const lines = result.split("\n").filter(l => l.trim())
+
         const reactIndex = lines.findIndex(l => l.includes('"react"'))
         const axiosIndex = lines.findIndex(l => l.includes('"axios"'))
         const buttonIndex = lines.findIndex(l => l.includes('"@/components"'))
@@ -259,6 +263,7 @@ const App = () => {
 
         // Card, Input, Alert, useEffect, useMemo 应该被删除
         expect(result).toContain("Button")
+
         expect(result).not.toContain("Card")
         expect(result).not.toContain("Input")
         expect(result).not.toContain("Alert")
@@ -315,6 +320,7 @@ const App = () => {
 
         // 验证副作用导入也参与排序
         expect(result).toContain("./global.css")
+
         expect(result).toContain("./tailwind.css")
         expect(result).toContain("react")
         expect(result).toContain("./components")
@@ -328,6 +334,7 @@ const App = () => {
             getGroup: statement => {
                 // 副作用导入单独分组
                 if (statement.isSideEffect) return "side-effects"
+
                 if (statement.path.startsWith("react")) return "react"
                 if (!statement.path.startsWith(".") && !statement.path.startsWith("@/")) return "external"
                 if (statement.path.startsWith("@/")) return "internal"
@@ -335,6 +342,7 @@ const App = () => {
             },
             sortGroup: (a, b) => {
                 const order = ["side-effects", "react", "external", "internal", "relative"]
+
                 return order.indexOf(a.name) - order.indexOf(b.name)
             },
             separator: "\n",
@@ -364,6 +372,7 @@ const App = () => {
 
         // 验证未使用的导入被删除
         expect(result).not.toContain("Card")
+
         expect(result).not.toContain("Input")
         expect(result).not.toContain("axios")
         expect(result).not.toContain("lodash")
@@ -373,6 +382,7 @@ const App = () => {
 
         // 验证使用的导入保留
         expect(result).toContain("react")
+
         expect(result).toContain("Button")
         expect(result).toContain("global.css")
         expect(result).toContain("useState")
@@ -410,6 +420,7 @@ const App = () => {
 
         // 验证代码被正确格式化
         expect(result).toContain("react")
+
         expect(result).toContain("className=")
         expect(result).toContain("container")
         expect(result).toContain("mx-auto")
@@ -434,6 +445,7 @@ const Component: FC<{ children: ReactNode }> = ({ children }) => {
 
         // 验证 type 导入保留
         expect(result).toContain("FC")
+
         expect(result).toContain("ReactNode")
         expect(result).toContain("ButtonProps")
         expect(result).toContain("useState")
@@ -458,6 +470,7 @@ describe("自定义配置测试", () => {
             },
             sortGroup: (a, b) => {
                 const order = ["react", "ui", "utils", "external", "internal", "relative"]
+
                 return order.indexOf(a.name) - order.indexOf(b.name)
             },
             separator: "\n",
@@ -765,6 +778,7 @@ describe("边界情况和错误处理测试", () => {
 const b = 2`
 
         const result = await formatCode(input)
+
         expect(result).toBe(`const a = 1;
 const b = 2;
 `)
@@ -776,6 +790,7 @@ const b = 2;
 const state = useState(0)`
 
         const result = await formatCode(input)
+
         expect(result).toBe(`import { useState } from "react";
 
 const state = useState(0);
@@ -804,6 +819,7 @@ const state = useState(0);
 const state = useState(0)`
 
         const result = await formatCode(input)
+
         expect(result).toBe(`import { useState } from "react";
 
 const state = useState(0);
@@ -885,6 +901,7 @@ describe("实际使用场景测试", () => {
             },
             sortGroup: (a, b) => {
                 const order = ["react", "external", "internal", "relative"]
+
                 return order.indexOf(a.name) - order.indexOf(b.name)
             },
             separator: "\n",
@@ -932,11 +949,13 @@ export function LoginPage() {
 
         // 验证未使用的导入被删除
         expect(result).not.toContain("formatDate")
+
         expect(result).not.toContain("api")
         expect(result).not.toContain("useEffect")
 
         // 验证使用的导入保留
         expect(result).toContain("react")
+
         expect(result).toContain("useState")
         expect(result).toContain("useAuth")
         expect(result).toContain("Button")
@@ -962,6 +981,7 @@ export function LoginPage() {
             },
             sortGroup: (a, b) => {
                 const order = ["styles", "framework", "external", "internal", "relative"]
+
                 return order.indexOf(a.name) - order.indexOf(b.name)
             },
             separator: "\n",
@@ -1005,6 +1025,7 @@ export default function RootLayout({ children }) {
 
         // 验证使用的导入保留
         expect(result).toContain("Metadata")
+
         expect(result).toContain("globals.css")
         expect(result).toContain("Inter")
         expect(result).toContain("ThemeProvider")

@@ -68,6 +68,7 @@ function defaultSortImportContent(a: ImportContent, b: ImportContent): number {
     if (a.type === "type" && b.type !== "type") {
         return -1
     }
+
     if (a.type !== "type" && b.type === "type") {
         return 1
     }
@@ -117,14 +118,18 @@ export function sortImports(imports: ImportStatement[], userConfig: PluginConfig
 
     // 对所有导入进行分组和排序
     const groups = groupImports(imports, config)
+
     const sortedGroups = sortGroups(groups, config)
 
     // 将分组中的导入语句展平
     const result: ImportStatement[] = []
+
     for (const group of sortedGroups) {
         const sortedStatements = sortImportStatements(group.importStatements, config)
+
         for (const statement of sortedStatements) {
             const sortedContents = sortImportContents(statement.importContents, config)
+
             result.push({
                 ...statement,
                 importContents: sortedContents,
@@ -138,7 +143,9 @@ export function sortImports(imports: ImportStatement[], userConfig: PluginConfig
 /** 对导入语句进行分组和排序（副作用导入作为分隔符） */
 function sortImportsWithSideEffectSeparators(imports: ImportStatement[], config: MergedConfig): ImportStatement[] {
     const result: ImportStatement[] = []
+
     const chunks: ImportStatement[][] = []
+
     let currentChunk: ImportStatement[] = []
 
     // 按照副作用导入分割成多个块
@@ -148,6 +155,7 @@ function sortImportsWithSideEffectSeparators(imports: ImportStatement[], config:
                 chunks.push(currentChunk)
                 currentChunk = []
             }
+
             chunks.push([statement])
         } else {
             currentChunk.push(statement)
@@ -168,12 +176,15 @@ function sortImportsWithSideEffectSeparators(imports: ImportStatement[], config:
 
         // 对非副作用导入块进行分组和排序
         const groups = groupImports(chunk, config)
+
         const sortedGroups = sortGroups(groups, config)
 
         for (const group of sortedGroups) {
             const sortedStatements = sortImportStatements(group.importStatements, config)
+
             for (const statement of sortedStatements) {
                 const sortedContents = sortImportContents(statement.importContents, config)
+
                 result.push({
                     ...statement,
                     importContents: sortedContents,
@@ -198,8 +209,10 @@ export function groupImports(imports: ImportStatement[], userConfig: PluginConfi
     }
 
     const groups: Group[] = []
+
     for (const [name, statements] of Array.from(groupMap.entries())) {
         const isSideEffect = statements.every((s: ImportStatement) => s.isSideEffect)
+
         groups.push({
             name,
             isSideEffect,
@@ -233,6 +246,7 @@ export function sortImportContents(contents: ImportContent[], userConfig: Plugin
 
     // 使用默认排序：默认导入和命名空间导入在最前面，type 在前
     const defaultImport = contents.filter(c => c.name === "default")
+
     const namespaceImport = contents.filter(c => c.name === "*")
     const namedImports = contents.filter(c => c.name !== "default" && c.name !== "*")
 
@@ -255,6 +269,7 @@ export function mergeImports(imports: ImportStatement[]): ImportStatement[] {
 
         // 如果包含命名空间导入，不合并
         const hasNamespaceImport = statement.importContents.some(c => c.name === "*")
+
         if (hasNamespaceImport) {
             const key = `${statement.path}|||${statement.isExport}|||namespace|||${statement.start}`
             mergedMap.set(key, statement)
@@ -281,6 +296,7 @@ export function mergeImports(imports: ImportStatement[]): ImportStatement[] {
                     if (content.leadingComments) {
                         existingContent.leadingComments = [...(existingContent.leadingComments ?? []), ...content.leadingComments]
                     }
+
                     if (content.trailingComments) {
                         existingContent.trailingComments = [...(existingContent.trailingComments ?? []), ...content.trailingComments]
                     }

@@ -24,6 +24,7 @@ function preprocessImports(text: string, options: ParserOptions & Partial<Plugin
 
         // 构建配置（优先级：config > options > defaults）
         const optionsConfig = options as any
+
         const finalConfig: PluginConfig = {
             getGroup: config.getGroup ?? optionsConfig.getGroup,
             sortGroup: config.sortGroup ?? optionsConfig.sortGroup,
@@ -36,6 +37,7 @@ function preprocessImports(text: string, options: ParserOptions & Partial<Plugin
 
         // 移除未使用的导入（如果配置了）
         let processedImports = imports
+
         if (finalConfig.removeUnusedImports) {
             // 只分析导入语句之后的代码部分
             const lastImport = imports[imports.length - 1]
@@ -71,6 +73,7 @@ function preprocessImports(text: string, options: ParserOptions & Partial<Plugin
 
         // 替换原始导入语句
         const beforeImports = text.slice(0, startIndex)
+
         const afterImports = text.slice(endIndex)
 
         // 确保导入语句后面有适当的换行
@@ -82,6 +85,7 @@ function preprocessImports(text: string, options: ParserOptions & Partial<Plugin
     } catch (error) {
         // 如果解析失败，返回原始文本
         console.error("Failed to sort imports:", error)
+
         return text
     }
 }
@@ -90,9 +94,11 @@ function preprocessImports(text: string, options: ParserOptions & Partial<Plugin
 const {
     parsers: { babel },
 } = require("prettier/parser-babel")
+
 const {
     parsers: { typescript },
 } = require("prettier/parser-typescript")
+
 const {
     parsers: { "babel-ts": babelTs },
 } = require("prettier/parser-babel")
@@ -108,6 +114,7 @@ function createCombinedPreprocess(parserName: string, config: PluginConfig) {
 
         // 获取合并后的配置选项
         const prettierOptions = config.prettierOptions || {}
+
         const mergedOptions = { ...options, ...prettierOptions }
 
         // 收集所有插件的 preprocess 函数
@@ -166,6 +173,7 @@ function createPluginInstance(config: PluginConfig = {}): Plugin {
 
     // 合并其他插件的 options
     const otherPlugins = config.otherPlugins || []
+
     const mergedOptions = { ...baseOptions }
 
     for (const plugin of otherPlugins) {
@@ -176,6 +184,7 @@ function createPluginInstance(config: PluginConfig = {}): Plugin {
 
     // 合并其他插件的 printers
     const mergedPrinters: Record<string, any> = {}
+
     for (const plugin of otherPlugins) {
         if (plugin?.printers) {
             Object.assign(mergedPrinters, plugin.printers)
@@ -187,15 +196,18 @@ function createPluginInstance(config: PluginConfig = {}): Plugin {
 
     // 对每个 parser，合并所有插件的定义
     const parserNames = ["babel", "typescript", "babel-ts"]
+
     const baseParsers: Record<string, any> = { babel, typescript, "babel-ts": babelTs }
 
     for (const parserName of parserNames) {
         const baseParser = baseParsers[parserName]
+
         let merged = { ...baseParser }
 
         // 合并其他插件对该 parser 的修改
         for (const plugin of otherPlugins) {
             const otherParser = plugin?.parsers?.[parserName]
+
             if (otherParser) {
                 // 保留其他插件的所有属性（parse, astFormat, print, etc.）
                 // 但 preprocess 由我们统一管理
