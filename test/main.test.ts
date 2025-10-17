@@ -666,6 +666,39 @@ import { Button } from "@/components/Button";
 const btn = <Button />;
 `)
     })
+
+    it("JSX 成员表达式识别（如 <DatePicker.RangePicker />）", async () => {
+        const input = `import { DatePicker, Form, Table } from "antd"
+import { Button } from "@mui/material"
+import { UnusedComponent } from "some-lib"
+
+const App = () => {
+    return (
+        <div>
+            <DatePicker.RangePicker />
+            <Form.Item>
+                <Form.Item.Meta />
+            </Form.Item>
+            <Table.Column.Group />
+            <Button>Click me</Button>
+        </div>
+    )
+}`
+
+        const result = await formatCode(input, {
+            importSortRemoveUnused: true,
+        })
+
+        // DatePicker、Form、Table、Button 应该被保留
+        expect(result).toContain("DatePicker")
+        expect(result).toContain("Form")
+        expect(result).toContain("Table")
+        expect(result).toContain("Button")
+
+        // UnusedComponent 应该被删除
+        expect(result).not.toContain("UnusedComponent")
+        expect(result).not.toContain("some-lib")
+    })
 })
 
 describe("Type-only 导入测试", () => {
@@ -733,7 +766,7 @@ const h = helper()`
 
         const result = await formatCode(input)
 
-        expect(result).toBe(`export { useState, FC } from "react";
+        expect(result).toBe(`export { useState, type FC } from "react";
 import { helper } from "./helper";
 
 const h = helper();
@@ -749,9 +782,9 @@ const h = helper()`
 
         const result = await formatCode(input)
 
-        expect(result).toBe(`export * from "react";
+        expect(result).toBe(`import { helper } from "./helper";
+export * from "react";
 export * from "@/utils";
-import { helper } from "./helper";
 
 const h = helper();
 `)

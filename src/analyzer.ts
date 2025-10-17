@@ -1,6 +1,6 @@
 import { parse } from "@babel/parser"
 import traverseModule, { NodePath } from "@babel/traverse"
-import { ExportNamedDeclaration, Identifier, JSXIdentifier, TSTypeReference } from "@babel/types"
+import { ExportNamedDeclaration, Identifier, JSXIdentifier, JSXMemberExpression, TSTypeReference } from "@babel/types"
 
 import { ImportContent, ImportStatement } from "./types"
 
@@ -46,6 +46,21 @@ export function analyzeUsedIdentifiers(code: string): Set<string> {
                 // JSX 开始标签和结束标签
                 if (path.parent?.type === "JSXOpeningElement" || path.parent?.type === "JSXClosingElement") {
                     usedIdentifiers.add(node.name)
+                }
+            },
+
+            // 处理 JSX 成员表达式（如 <DatePicker.RangePicker />）
+            JSXMemberExpression(path: NodePath<JSXMemberExpression>) {
+                // 获取最左边的对象标识符
+                let current: any = path.node
+
+                while (current.type === "JSXMemberExpression") {
+                    current = current.object
+                }
+
+                // 找到最左边的标识符后，添加到使用列表
+                if (current.type === "JSXIdentifier") {
+                    usedIdentifiers.add(current.name)
                 }
             },
 
