@@ -9,7 +9,7 @@ import { ImportContent, ImportStatement } from "./types"
 const traverse = typeof traverseModule === "function" ? traverseModule : traverseModule.default
 
 /** 分析代码中使用的标识符 */
-export function analyzeUsedIdentifiers(code: string): Set<string> {
+export function analyzeUsedIdentifiers(code: string): Set<string> | null {
     const usedIdentifiers = new Set<string>()
 
     try {
@@ -101,7 +101,11 @@ export function analyzeUsedIdentifiers(code: string): Set<string> {
             },
         })
     } catch (error) {
-        console.error("Failed to analyze used identifiers:", error)
+        // 静默处理语法错误
+        // Prettier 是格式化工具，不应该验证语法错误
+        // 当代码有语法错误时（如重复声明变量），返回 null 表示分析失败
+        // 这样调用方可以跳过移除未使用导入的逻辑
+        return null
     }
 
     return usedIdentifiers
@@ -146,6 +150,11 @@ export function filterUnusedImports(importStatement: ImportStatement, usedIdenti
 export function removeUnusedImportsFromStatements(importStatements: ImportStatement[], code: string): ImportStatement[] {
     // 分析代码中使用的标识符
     const usedIdentifiers = analyzeUsedIdentifiers(code)
+
+    // 如果分析失败（代码有语法错误），直接返回原始导入语句，不做任何修改
+    if (usedIdentifiers === null) {
+        return importStatements
+    }
 
     // 过滤每个导入语句
     const filteredStatements: ImportStatement[] = []
