@@ -71,5 +71,4 @@ export default createPlugin({
     separator: "",
     sortSideEffect: true,
     removeUnusedImports: true,
-    otherPlugins: [blockPadding],
 })

@@ -699,6 +699,26 @@ const App = () => {
         expect(result).not.toContain("UnusedComponent")
         expect(result).not.toContain("some-lib")
     })
+
+    it("条件表达式中的标识符识别（如 if (!isSudo)）", async () => {
+        const input = `import { isSudo } from "@/constant"
+import { sudoCommand } from "@/utils"
+
+export async function install() {
+    if (!isSudo) return sudoCommand()
+    console.log("Installing...")
+}`
+
+        const result = await formatCode(input, {
+            importSortRemoveUnused: true,
+        })
+
+        // isSudo 和 sudoCommand 应该被保留
+        expect(result).toContain("isSudo")
+        expect(result).toContain("sudoCommand")
+        expect(result).toContain("@/constant")
+        expect(result).toContain("@/utils")
+    })
 })
 
 describe("Type-only 导入测试", () => {

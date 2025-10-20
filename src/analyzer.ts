@@ -26,8 +26,8 @@ export function analyzeUsedIdentifiers(code: string): Set<string> | null {
                 const node = path.node
                 const parent = path.parent
 
-                // 跳过声明的标识符（如函数参数、变量声明等）
-                if (path.isBindingIdentifier()) {
+                // 只收集被引用的标识符
+                if (!path.isReferenced()) {
                     return
                 }
 
