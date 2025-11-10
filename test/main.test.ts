@@ -826,6 +826,15 @@ const cloud = Cloud`
         expect(result).toContain('export * from "@/utils"')
     })
 
+    it("export { default } 语法正确格式化", async () => {
+        const input = `export { default } from "@/app/admin/login/page"`
+
+        const result = await formatCode(input)
+
+        // 验证 export { default } 语法被正确保留，不会被错误转换为 export default
+        expect(result).toBe('export { default } from "@/app/admin/login/page";\n')
+    })
+
     it("多个 export * from 语句排序和分组", async () => {
         const customPlugin = createPlugin({
             getGroup: ({ path }) => {

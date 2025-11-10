@@ -54,10 +54,16 @@ export function formatImportStatement(statement: ImportStatement): string {
         // 默认导入
         if (content.name === "default") {
             // 对于 import 语句，默认导入不需要大括号
-            // 对于 export 语句，默认导入需要使用 { default as alias } 格式
-            if (isExport && content.alias) {
-                namedParts.push(`default as ${content.alias}`)
+            // 对于 export 语句，默认导入需要使用 { default } 或 { default as alias } 格式
+            if (isExport) {
+                // export 语句始终使用命名导出格式
+                if (content.alias) {
+                    namedParts.push(`default as ${content.alias}`)
+                } else {
+                    namedParts.push("default")
+                }
             } else {
+                // import 语句使用简化的默认导入格式
                 parts.push(content.alias ?? "default")
             }
             continue
