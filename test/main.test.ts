@@ -809,6 +809,79 @@ export * from "@/utils";
 const h = helper();
 `)
     })
+
+    it("export { default as alias } 语法正确格式化", async () => {
+        const input = `export { default as equal } from "fast-deep-equal"
+export { Cloud as default } from "./cloud"
+export * from "@/utils"
+
+const eq = equal
+const cloud = Cloud`
+
+        const result = await formatCode(input)
+
+        // 验证 export { default as alias } 语法被正确保留
+        expect(result).toContain('export { default as equal } from "fast-deep-equal"')
+        expect(result).toContain('export { Cloud as default } from "./cloud"')
+        expect(result).toContain('export * from "@/utils"')
+    })
+
+    it("多个 export * from 语句排序和分组", async () => {
+        const customPlugin = createPlugin({
+            getGroup: ({ path }) => {
+                if (path.startsWith("@/")) return "absolute"
+                if (path.startsWith("./")) return "relative"
+                return "third-party"
+            },
+            sortGroup: (a, b) => {
+                const order = ["third-party", "relative", "absolute"]
+                return order.indexOf(a.name) - order.indexOf(b.name)
+            },
+            separator: "",
+        })
+
+        const input = `export * from "@/coverings/circularRange"
+export * from "@/coverings/columnHeatMap"
+export * from "@/coverings/customPoi"
+export * from "./cloud"
+export { Cloud as default } from "./cloud"
+export { default as equal } from "fast-deep-equal"`
+
+        const result = await formatCodeWithPlugin(input, customPlugin)
+
+        // 验证第一行不是空行
+        expect(result.startsWith("export")).toBe(true)
+        expect(result.startsWith("\n")).toBe(false)
+
+        // 验证 export { default as alias } 格式正确
+        expect(result).toContain('export { default as equal } from "fast-deep-equal"')
+        expect(result).toContain('export { Cloud as default } from "./cloud"')
+
+        // 验证分组顺序：third-party -> relative -> absolute
+        const lines = result.split("\n").filter(l => l.trim())
+        const equalIndex = lines.findIndex(l => l.includes("fast-deep-equal"))
+        const cloudIndex = lines.findIndex(l => l.includes('from "./cloud"'))
+        const coveringsIndex = lines.findIndex(l => l.includes("@/coverings"))
+
+        expect(equalIndex).toBeGreaterThan(-1)
+        expect(cloudIndex).toBeGreaterThan(-1)
+        expect(coveringsIndex).toBeGreaterThan(-1)
+        expect(equalIndex).toBeLessThan(cloudIndex)
+        expect(cloudIndex).toBeLessThan(coveringsIndex)
+    })
+
+    it("export * from 与 export { } from 混合使用", async () => {
+        const input = `export * from "./utils"
+export { Button, Card } from "@/components"
+export { default as helper } from "./helper"`
+
+        const result = await formatCode(input)
+
+        // 验证所有 export 语句都被正确保留
+        expect(result).toContain('export * from "./utils"')
+        expect(result).toContain('export { Button, Card } from "@/components"')
+        expect(result).toContain('export { default as helper } from "./helper"')
+    })
 })
 
 describe("边界情况和错误处理测试", () => {

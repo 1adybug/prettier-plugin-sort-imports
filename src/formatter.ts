@@ -53,7 +53,13 @@ export function formatImportStatement(statement: ImportStatement): string {
     for (const content of importContents) {
         // 默认导入
         if (content.name === "default") {
-            parts.push(content.alias ?? "default")
+            // 对于 import 语句，默认导入不需要大括号
+            // 对于 export 语句，默认导入需要使用 { default as alias } 格式
+            if (isExport && content.alias) {
+                namedParts.push(`default as ${content.alias}`)
+            } else {
+                parts.push(content.alias ?? "default")
+            }
             continue
         }
 
@@ -173,8 +179,8 @@ export function formatGroups(groups: Group[], config: PluginConfig): string {
     for (let i = 0; i < groups.length; i++) {
         const group = groups[i]
 
-        // 添加分隔符
-        if (separator !== undefined) {
+        // 添加分隔符（第一个分组前不添加分隔符）
+        if (separator !== undefined && i > 0) {
             let separatorStr: string | undefined
 
             if (typeof separator === "string") {

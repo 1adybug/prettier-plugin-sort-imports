@@ -5,7 +5,6 @@ import { builtinModules } from "module"
 
 import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
 import JSON5 from "json5"
-import blockPadding from "prettier-plugin-block-padding"
 
 /**
  * @param {string} path
