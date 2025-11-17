@@ -15,6 +15,14 @@ const require = createRequire(import.meta.url)
 /** 预处理导入语句 */
 function preprocessImports(text: string, options: ParserOptions & Partial<PluginConfig>, config: PluginConfig = {}): string {
     try {
+        // 只处理 JavaScript/TypeScript 文件
+        const parser = options.parser
+        const supportedParsers = ["babel", "typescript", "babel-ts"]
+
+        if (!parser || !supportedParsers.includes(parser as string)) {
+            return text
+        }
+
         // 解析导入语句
         const imports = parseImports(text)
 
@@ -84,8 +92,7 @@ function preprocessImports(text: string, options: ParserOptions & Partial<Plugin
         return beforeImports + formattedImports + separator + afterImports
     } catch (error) {
         // 如果解析失败，返回原始文本
-        console.error("Failed to sort imports:", error)
-
+        // 对于 Markdown 等文件中的代码块，解析失败是正常现象，不输出错误
         return text
     }
 }

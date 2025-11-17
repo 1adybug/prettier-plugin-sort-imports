@@ -3,8 +3,9 @@
 import { readFileSync } from "fs"
 import { builtinModules } from "module"
 
-import { createPlugin } from "@1adybug/prettier-plugin-sort-imports"
 import JSON5 from "json5"
+
+import { createPlugin } from "./dist/index.js"
 
 /**
  * @param {string} path
