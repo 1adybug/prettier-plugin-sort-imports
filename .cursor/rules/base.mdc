@@ -1,6 +1,7 @@
 ---
 alwaysApply: true
 ---
+
 # User Rule
 
 - Always respond in 中文
@@ -16,7 +17,7 @@ alwaysApply: true
             name: string
             age: number
         }
-    }    
+    }
     ```
 
     你应该将 `Father` 类型独立出来，而不是使用字面量类型:
@@ -41,29 +42,6 @@ alwaysApply: true
 - 尽量使用模板字符串而不是 `+` 进行字符串拼接
 - 中文和英文之间加一个空格
 - 生成 `React` 组件时，尽量使用函数式组件，而不是类组件
-- 你应该按照以下规范生成 `React` 组件:
-
-    ```tsx
-    import { ComponentProps, FC } from "react"
-    import { clsx } from "deepsea-tools"
-    import { StrictOmit } from "soda-type"
-
-    export interface BookProps extends StrictOmit<ComponentProps<"div">, "children"> {
-        isbn: string
-    }
-
-    const Book: FC<BookProps> = ({ className, isbn, ...rest }) => {
-
-        return (
-            <div className={clsx("container", className)} {...rest}>
-                
-            </div>
-        )
-    }
-
-    export default Book
-    ```
-
 - 你应该按照以下目录结构生成 `React` 项目:
 
     ```text
@@ -112,16 +90,14 @@ alwaysApply: true
 
 - 不需要为类型文件单独生成一个 `types/index.ts` 文件，而是直接在需要使用的地方进行类型声明并且导出
 - 当你使用 `@heroui/react` 组件库中的 `Button` 组件时，点击事件请使用 `onPress` 而不是 `onClick`
-- 当你使用`@tanstack/react-query` 的 `useQuery` 时，请使用函数名的烤肉串命名法和参数组成 `key`，例如 `queryKey: ["query-book", queryParams]`
+- 当你使用 `@tanstack/react-query` 的 `useQuery` 时，请使用函数名的烤肉串命名法和参数组成 `key`，例如 `queryKey: ["query-book", queryParams]`
 - 函数的参数数量尽量控制在 2 个以内，如果超过 2 个，请使用对象形式的参数，参数类型名称使用函数名的大驼峰 + `Params` 后缀，例如 `QueryBookParams`
 - 尽量直接从模块中导入方法，而不是使用 `默认导出.方法` 的形式
 
     ```typescript
-    // 你应该直接从 fs/promises 中导入 readFile 方法
-    import { readFile } from "fs/promises"
-
     // 而不是使用 默认导出.方法 的形式
     import fs from "fs/promises"
+
     fs.readFile
     ```
 
@@ -142,8 +118,39 @@ alwaysApply: true
     ```
 
     `Web API` 中的 `WritableStream` 转换为 `Node.js` 中的 `Writable` 的方法同理
+
 - `zod/v4` 就是 `zod` 在 `3.25` 及之后的 `v3` 版本中所提供的 `v4` 版本的 `zod`，如果当前项目的版本是 `3.25` 及之后的 `v3` 版本，你应该使用 `zod/v4` 而不是 `zod`，如果当前项目使用的就是 `zod/v4`，那你不需要检查 `zod` 的版本，保持一致，使用 `zod/v4` 即可
 - 严格区分中英文标点符号，不要混用，如果用户混用了，你应该提示用户使用正确的标点符号
-- 当我在对话中提出 `no extra` 时，请不要做任何我指定的任务以外的事情，比如进行 lint 检查或者在我指定的区域以外进行任何操作
 - 当使用网络请求时，请使用 `@/utils/request` 中的 `request` 方法，而不是使用 `fetch` 方法，`request` 方法与 `fetch` 的调用方法基本一致
 - 当你需要进行包管理相关的操作时，比如安装、更新、卸载、执行 `package.json` 中的脚本或者 `npx` 执行某个命令时，请检查当前项目中的 `lock` 文件，如果是 `bun.lock`，你应该使用 `bun` 进行包管理，如果是 `package-lock.json`，你应该使用 `npm` 进行包管理，如果是 `yarn.lock`，你应该使用 `yarn` 进行包管理，如果是 `pnpm-lock.yaml`，你应该使用 `pnpm` 进行包管理，如果同时存在多个 `lock` 文件，优先级为 `bun` > `pnpm` > `yarn` > `npm`
+- 请不要使用 `enum` 来声明枚举，而是使用以下方式声明：
+
+    ```typescript
+    export const Gender = {
+        男: "male",
+        女: "female",
+    } as const
+
+    export type Gender = (typeof Gender)[keyof typeof Gender]
+    ```
+
+- 在创建 `git` 提交记录，必须使用 `[emoji] [type]: 具体内容`的格式进行提交，具体内容使用中文，以下是预设的 `emoji` 和 `type`：
+
+    ```text
+    ✨ feature: Select when creating new things
+    🐞 fix: Select when fixing a bug
+    📝 docs: Select when editing documentation
+    💻 wip: Select when work is not finished
+    🚄 perfs: Select when working on performances
+    ⏪ rollback:Select when undoing something
+    🔵 other: Select when fixing a bug
+    ```
+
+    当然，你也可以使用你自己的 `emoji` 和 `type`。如果你的提交记录包含了多种内容，你可以使用多行比如：
+
+    ```text
+    ✨ feature: some feature u did
+    🐞 fix: some bug u fixed
+    ```
+
+- 请始终使用 `on` + 事件名作为事件处理函数的名称，比如 `onClick` 事件处理函数应该命名为 `onClick`，而不是 `handleClick`

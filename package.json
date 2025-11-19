@@ -47,7 +47,8 @@
         "format": "prettier --write .",
         "test": "bun test",
         "test:watch": "bun test --watch",
-        "fg": "npm run format && git add . && git commit -m \"✨feature: format\""
+        "fg": "npm run format && git add . && git commit -m \"✨feature: format\"",
+        "ucr": "npx zixulu acr"
     },
     "devDependencies": {
         "@rslib/core": "^0.15.0",
