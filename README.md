@@ -1,4 +1,4 @@
-# Prettier Plugin Import Sorts
+# Prettier Plugin Sort Imports
 
 [中文文档](https://github.com/1adybug/prettier-plugin-sort-imports/blob/main/README.zh-CN.md)
 
@@ -44,7 +44,10 @@ npx prettier --write "src/**/*.{js,ts,jsx,tsx}"
 ### Basic Sorting
 
 ```typescript
-
+import React, { useEffect, useState } from "react"
+import { Button } from "antd"
+import { sum } from "./utils"
+import "./styles.css"
 ```
 
 ### Custom Grouping and Sorting
@@ -78,6 +81,13 @@ export default {
 Result:
 
 ```typescript
+import React, { useState } from "react"
+
+import { Button } from "antd"
+import { format } from "date-fns"
+
+import { Header } from "./components/Header"
+import { sum } from "./utils"
 import "./styles.css"
 ```
 
@@ -438,7 +448,13 @@ separator: (group, index) => {
 3. Named imports are sorted by `type` priority, then alphabetically by final import name
 
 ```typescript
-
+import Default, * as Namespace from "module"
+import {
+    type TypeA,
+    type TypeB,
+    VariableA,
+    VariableB,
+} from "module"
 ```
 
 **Custom behavior**:
@@ -457,7 +473,11 @@ createPlugin({
 ```
 
 ```typescript
-
+import {
+    API_KEY,
+    type User,
+    getUser,
+} from "api"
 ```
 
 ### Import Statement Sorting
@@ -465,7 +485,9 @@ createPlugin({
 Import statements are sorted alphabetically by module path:
 
 ```typescript
-
+import { a } from "a-module"
+import { b } from "b-module"
+import { c } from "c-module"
 ```
 
 ### Comment Handling
@@ -473,7 +495,14 @@ Import statements are sorted alphabetically by module path:
 Comments follow the import statements they are attached to:
 
 ```typescript
+// React related imports
+import React from "react"
 
+// UI components
+import { Button } from "antd"
+
+// Utilities
+import { sum } from "./utils"
 ```
 
 ## Implementation Details

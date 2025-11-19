@@ -1,4 +1,4 @@
-# Prettier Plugin Import Sorts
+# Prettier Plugin Sort Imports
 
 [English](https://github.com/1adybug/prettier-plugin-sort-imports/blob/main/README.md)
 
@@ -43,7 +43,10 @@ npx prettier --write "src/**/*.{js,ts,jsx,tsx}"
 ### 基本排序
 
 ```typescript
-
+import React, { useEffect, useState } from "react"
+import { Button } from "antd"
+import { sum } from "./utils"
+import "./styles.css"
 ```
 
 ### 自定义分组和排序
@@ -77,6 +80,13 @@ export default {
 结果：
 
 ```typescript
+import React, { useState } from "react"
+
+import { Button } from "antd"
+import { format } from "date-fns"
+
+import { Header } from "./components/Header"
+import { sum } from "./utils"
 import "./styles.css"
 ```
 
@@ -430,7 +440,13 @@ separator: (group, index) => {
 3. 命名导入按照 `type` 类型优先，然后按最终导入名称字母顺序排序
 
 ```typescript
-
+import Default, * as Namespace from "module"
+import {
+    type TypeA,
+    type TypeB,
+    VariableA,
+    VariableB,
+} from "module"
 ```
 
 **自定义行为**：
@@ -449,7 +465,11 @@ createPlugin({
 ```
 
 ```typescript
-
+import {
+    API_KEY,
+    type User,
+    getUser,
+} from "api"
 ```
 
 ### 导入语句排序
@@ -457,7 +477,9 @@ createPlugin({
 导入语句按模块路径的字母顺序排序：
 
 ```typescript
-
+import { a } from "a-module"
+import { b } from "b-module"
+import { c } from "c-module"
 ```
 
 ### 注释处理
@@ -465,7 +487,14 @@ createPlugin({
 注释会跟随它们所附加的导入语句一起移动：
 
 ```typescript
+// React 相关导入
+import React from "react"
 
+// UI 组件
+import { Button } from "antd"
+
+// 工具函数
+import { sum } from "./utils"
 ```
 
 ## 实现细节
