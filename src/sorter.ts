@@ -196,22 +196,28 @@ function sortImportsWithSideEffectSeparators(imports: ImportStatement[], config:
     return result
 }
 
-/** 对导入语句进行分组 */
+/** 对导入语句进行分组，同时根据 name 和 isSideEffect 区分 */
 export function groupImports(imports: ImportStatement[], userConfig: PluginConfig): Group[] {
     const config = mergeConfig(userConfig)
+    // 使用 name + isSideEffect 作为组合键来区分不同的 Group
     const groupMap = new Map<string, ImportStatement[]>()
 
     for (const statement of imports) {
         const groupName = config.getGroup(statement)
-        const statements = groupMap.get(groupName) ?? []
+        // 组合键：name|||isSideEffect
+        const key = `${groupName}|||${statement.isSideEffect}`
+        const statements = groupMap.get(key) ?? []
         statements.push(statement)
-        groupMap.set(groupName, statements)
+        groupMap.set(key, statements)
     }
 
     const groups: Group[] = []
 
-    for (const [name, statements] of Array.from(groupMap.entries())) {
-        const isSideEffect = statements.every((s: ImportStatement) => s.isSideEffect)
+    for (const [key, statements] of Array.from(groupMap.entries())) {
+        // 从组合键中解析出 name 和 isSideEffect
+        const separatorIndex = key.lastIndexOf("|||")
+        const name = key.slice(0, separatorIndex)
+        const isSideEffect = key.slice(separatorIndex + 3) === "true"
 
         groups.push({
             name,

@@ -45,27 +45,18 @@ function isRelative(path) {
  */
 function compareGroupName(a, b) {
     const orders = ["builtin", "third-party", "absolute", "relative"]
-
-    a = a.replace(/-side-effect$/, "")
-    b = b.replace(/-side-effect$/, "")
     return orders.indexOf(a) - orders.indexOf(b) || a.localeCompare(b)
 }
 
 export default createPlugin({
-    getGroup({ path, isSideEffect }) {
-        if (isSideEffect) {
-            if (isBuiltin(path)) return "builtin-side-effect"
-            if (isAbsolute(path)) return "absolute-side-effect"
-            if (isRelative(path)) return "relative-side-effect"
-            return "third-party-side-effect"
-        }
-
+    getGroup({ path }) {
         if (isBuiltin(path)) return "builtin"
         if (isAbsolute(path)) return "absolute"
         if (isRelative(path)) return "relative"
         return "third-party"
     },
     sortGroup(a, b) {
+        console.log(a.name, b.name)
         return Number(a.isSideEffect) - Number(b.isSideEffect) || compareGroupName(a.name, b.name)
     },
     separator: "",
